@@ -1,4 +1,4 @@
-﻿using CatStoreAPI.CatStore.Models;
+﻿using CatStoreAPI.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.DataBase

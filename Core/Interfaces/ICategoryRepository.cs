@@ -1,4 +1,4 @@
-﻿using CatStoreAPI.CatStore.Models;
+﻿using CatStoreAPI.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;

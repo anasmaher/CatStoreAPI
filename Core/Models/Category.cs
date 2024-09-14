@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
-namespace CatStoreAPI.CatStore.Models
+namespace CatStoreAPI.Core.Models
 {
     public class Category
     {

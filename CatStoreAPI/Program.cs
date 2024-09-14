@@ -1,4 +1,4 @@
-using CatStoreAPI.CatStore.Models;
+using CatStoreAPI.Core.Models;
 using CatStoreAPI.Configuration;
 using Core.Interfaces;
 using Infrastructure.Repositories;

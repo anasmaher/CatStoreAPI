@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using CatStoreAPI.CatStore.Models;
+using CatStoreAPI.Core.Models;
 using CatStoreAPI.DTO;
 using Core.Interfaces;
 using Microsoft.AspNetCore.JsonPatch;

@@ -1,4 +1,4 @@
-﻿using CatStoreAPI.CatStore.Models;
+﻿using CatStoreAPI.Core.Models;
 using Core.Interfaces;
 using Infrastructure.DataBase;
 using System;
