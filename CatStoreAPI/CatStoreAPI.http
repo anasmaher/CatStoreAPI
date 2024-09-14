@@ -1,6 +1,0 @@
-@CatStoreAPI_HostAddress = http://localhost:5221
-
-GET {{CatStoreAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
