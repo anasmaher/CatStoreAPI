@@ -9,6 +9,6 @@ namespace Core.Interfaces
 {
     public interface ICategoryRepository : IRepository<Category>
     {
-        public Task UpdateAsync(Category obj);
+        public Task<Category> UpdateAsync(int Id, Category obj);
     }
 }

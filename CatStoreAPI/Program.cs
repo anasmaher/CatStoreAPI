@@ -19,7 +19,8 @@ namespace CatStoreAPI
                 options.UseSqlServer(connectionString));
 
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             builder.Services.AddControllers().AddNewtonsoftJson();
 

@@ -16,10 +16,12 @@ namespace Infrastructure.Repositories
             this.dbSet = dbContext.Set<T>();
         }
 
-        public async Task AddAsync(T Entity)
+        public async Task<T> AddAsync(T Entity)
         {
             await dbSet.AddAsync(Entity);
             await SaveAsync();
+
+            return Entity;
         }
 
         public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> filter = null)
@@ -37,26 +39,23 @@ namespace Infrastructure.Repositories
         {
             IQueryable<T> query = dbSet;
 
-            var result = await query.SingleOrDefaultAsync(filter);
+            var result = await query.FirstOrDefaultAsync(filter);
 
-            if (result is not null)
-                return result;
+            return result;
+        }
+
+        public async Task RemoveAsync(Expression<Func<T, bool>> filter)
+        {
+            var res = await GetSingleAsync(filter);
+
+            if (res is not null)
+            {
+                dbSet.Remove(res);
+                await SaveAsync();
+            }
             else
                 throw new Exception("Not found!");
-        }
 
-        public async Task RemoveAsync(T Entity)
-        {
-            dbSet.Remove(Entity);
-
-            await SaveAsync();
-        }
-
-        public async Task RemoveRangeAsync(IEnumerable<T> entities)
-        {
-            dbSet.RemoveRange(entities);
-
-            await SaveAsync();
         }
 
         public async Task SaveAsync()

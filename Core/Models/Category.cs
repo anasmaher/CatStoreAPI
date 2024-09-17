@@ -1,5 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Core.Models;
+using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CatStoreAPI.Core.Models
 {
@@ -10,8 +14,13 @@ namespace CatStoreAPI.Core.Models
         [MaxLength(100)]
         public string Name { get; set; }
 
-        public int OrderNumber { get; set; }
+        public int DisplayOrder { get; set; }
 
-        public IFormFile? Image { get; set; }
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [JsonIgnore]
+        [IgnoreDataMember]
+        public List<Product> Products { get; set; }
     }
 }

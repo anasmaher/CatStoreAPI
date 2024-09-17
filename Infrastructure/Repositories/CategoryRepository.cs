@@ -18,14 +18,18 @@ namespace Infrastructure.Repositories
             dbContext = _dbContext;
         }
 
-        public async Task UpdateAsync(Category category)
+        public async Task<Category> UpdateAsync(int Id, Category category)
         {
-            var UpdatedCategory = await GetSingleAsync(x => x.Id == category.Id);
+            var UpdatedCategory = await GetSingleAsync(x => x.Id == Id);
 
             if (UpdatedCategory is not null)
             {
                 UpdatedCategory.Name = category.Name;
-                UpdatedCategory.Image = category.Image;
+                UpdatedCategory.ImageUrl = category.ImageUrl;
+
+                dbContext.SaveChanges();
+
+                return UpdatedCategory;
             }
             else
             {

@@ -1,12 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace CatStoreAPI.DTO
+namespace CatStoreAPI.DTO.CategoryDTOs
 {
     public class CategoryDTO
     {
-        [Required, MaxLength(100)]
         public string Name { get; set; }
 
-        public IFormFile? Image { get; set; }
+        public int DisplayOrder { get; set; }
+
+        public string? ImageUrl { get; set; }
     }
 }

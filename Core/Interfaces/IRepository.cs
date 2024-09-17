@@ -8,11 +8,9 @@ namespace Core.Interfaces
 
         Task<T> GetSingleAsync(Expression<Func<T, bool>> filter);
 
-        Task AddAsync(T Entity);
+        Task<T> AddAsync(T Entity);
 
-        Task RemoveAsync(T Entity);
-
-        Task RemoveRangeAsync(IEnumerable<T> entities);
+        Task RemoveAsync(Expression<Func<T, bool>> filter);
 
         Task SaveAsync();
     }

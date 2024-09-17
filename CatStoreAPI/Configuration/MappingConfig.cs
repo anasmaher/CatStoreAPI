@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using CatStoreAPI.Core.Models;
-using CatStoreAPI.DTO;
+using CatStoreAPI.DTO.CategoryDTOs;
+using CatStoreAPI.DTO.ProductDTOs;
+using Core.Models;
 
 namespace CatStoreAPI.Configuration
 {
@@ -9,6 +11,12 @@ namespace CatStoreAPI.Configuration
         public MappingConfig()
         {
             CreateMap<Category, CategoryDTO>().ReverseMap();
+            CreateMap<Category, CategoryCreatDTO>().ReverseMap();
+            CreateMap<Category, CategoryUpdateDTO>().ReverseMap();
+
+            CreateMap<Product, ProductDTO>().ReverseMap();
+            CreateMap<Product, ProductCreateDTO>().ReverseMap();
+            CreateMap<Product, ProductUpdateDTO>().ReverseMap();
         }
     }
 }
