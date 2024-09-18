@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CatStoreAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/ShoppingCart")]
     [ApiController]
     public class ShoppingCartController : ControllerBase
     {

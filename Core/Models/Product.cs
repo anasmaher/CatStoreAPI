@@ -48,13 +48,6 @@ namespace Core.Models
         [IgnoreDataMember]
         public virtual Category Category { get; set; }
 
-        [ForeignKey(nameof(ShoppingCartId))]
-        public int ShoppingCartId { get; set; }
-
-        [JsonIgnore]
-        [IgnoreDataMember]
-        public virtual List<ShoppingCart> ShoppingCarts { get; set; }
-
         public virtual List<ShoppingCartItem> Items { get; set; }
     }
 }
