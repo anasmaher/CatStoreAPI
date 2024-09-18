@@ -19,7 +19,7 @@ namespace Infrastructure.Repositories
             dbContext = _dbContext;
         }
 
-        public async Task<ShoppingCart> CreateCart()
+        public async Task<ShoppingCart> CreateCartAsync()
         {
             var cart = new ShoppingCart();
             await dbContext.ShoppingCarts.AddAsync(cart);
@@ -38,13 +38,20 @@ namespace Infrastructure.Repositories
             return cart;
         }
 
-        public async Task<ShoppingCartItem> AddItem(int cartId, int ProductId)
+        public async Task<ShoppingCartItem> GetCartItemByIdAsync(int id)
+        {
+            var item = await dbContext.Items.FirstOrDefaultAsync(x => x.Id == id);
+
+            return item;
+        }
+
+        public async Task<ShoppingCartItem> AddItemAsync(int cartId, int ProductId)
         {
             var cart = await GetCartWithItemsAsync(cartId);
 
             if (cart is null)
             {
-                cart = await CreateCart();
+                cart = await CreateCartAsync();
             }
 
             var product = await dbContext.Products
@@ -70,23 +77,32 @@ namespace Infrastructure.Repositories
             }
             else
             {
-                item = await dbContext.Items.FirstOrDefaultAsync(x => x.ProductId == ProductId);
+                item = await dbContext.Items
+                    .FirstOrDefaultAsync(x => x.ProductId == ProductId && x.ShoppingCartId == cartId);
                 
-                await UpdateCartItem(cartId, item.Id, item.Quantity + 1);
+                await UpdateCartItemAsync(item.Id, item.Quantity + 1);
             }
 
             return item;
         }
 
-        public async Task<ShoppingCartItem> UpdateCartItem(int cartId, int itemId, int quantity)
+        public async Task<ShoppingCartItem> UpdateCartItemAsync(int itemId, int quantity)
         {
-            var cart = await GetCartWithItemsAsync(cartId);
-
-            var item = await dbContext.Items.FirstOrDefaultAsync();
+            var item = await GetCartItemByIdAsync(itemId);
 
             item.Quantity = quantity;
 
             dbContext.Items.Update(item);
+            await dbContext.SaveChangesAsync();
+
+            return item;
+        }
+
+        public async Task<ShoppingCartItem> RemoveCartItemAsync(int itemId)
+        {
+            var item = dbContext.Items.FirstOrDefault(x => x.Id == itemId);
+
+            dbContext.Items.Remove(item);
             await dbContext.SaveChangesAsync();
 
             return item;
