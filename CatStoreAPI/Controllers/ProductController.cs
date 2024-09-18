@@ -67,7 +67,7 @@ namespace CatStoreAPI.Controllers
         {
             var existProductCode = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
 
-            if (existProductCode != null)
+            if (existProductCode != null && existProductCode.Id != Id)
                 ModelState.AddModelError("", "Product Code already exists.");
 
             if (ModelState.IsValid)

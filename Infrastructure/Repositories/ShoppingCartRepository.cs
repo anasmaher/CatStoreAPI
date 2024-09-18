@@ -2,11 +2,6 @@
 using Core.Models;
 using Infrastructure.DataBase;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Repositories
 {
@@ -48,7 +43,7 @@ namespace Infrastructure.Repositories
             return item;
         }
 
-        public async Task<ShoppingCartItem> AddItemAsync(int cartId, int ProductId)
+        public async Task<ShoppingCartItem> AddItemAsync(int cartId, int ProductId, int quantity)
         {
             var cart = await GetCartWithItemsAsync(cartId);
 
@@ -64,16 +59,19 @@ namespace Infrastructure.Repositories
 
             if (itemHasProduct is null)
             {
-                 item = new ShoppingCartItem()
+                var currentProduct = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == ProductId);
+
+                item = new ShoppingCartItem()
                 {
                     ProductId = ProductId,
-                    Product = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == ProductId),
-                    Quantity = 1,
+                    Product = currentProduct,
+                    Quantity = quantity,
                     ShoppingCartId = cartId,
                     ShoppingCart = cart
                 };
 
                 cart.Items.Add(item);
+
                 await dbContext.Items.AddAsync(item);
 
                 await dbContext.SaveChangesAsync();
@@ -83,7 +81,7 @@ namespace Infrastructure.Repositories
                 item = await dbContext.Items
                     .FirstOrDefaultAsync(x => x.ProductId == ProductId && x.ShoppingCartId == cartId);
                 
-                await UpdateCartItemAsync(item.Id, item.Quantity + 1);
+                await UpdateCartItemAsync(item.Id, item.Quantity + quantity);
             }
 
             return item;
@@ -93,7 +91,9 @@ namespace Infrastructure.Repositories
         {
             var item = await GetCartItemByIdAsync(itemId);
 
-            item.Quantity = quantity;
+            var cart = await dbContext.ShoppingCarts.FirstOrDefaultAsync(x => x.Id == item.ShoppingCartId);
+            
+            item.Quantity = quantity; 
 
             dbContext.Items.Update(item);
             await dbContext.SaveChangesAsync();
@@ -104,6 +104,7 @@ namespace Infrastructure.Repositories
         public async Task<ShoppingCartItem> RemoveCartItemAsync(int itemId)
         {
             var item = dbContext.Items.FirstOrDefault(x => x.Id == itemId);
+            var cart = item.ShoppingCart;
 
             dbContext.Items.Remove(item);
             await dbContext.SaveChangesAsync();

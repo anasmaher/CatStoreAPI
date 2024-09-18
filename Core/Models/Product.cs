@@ -17,7 +17,7 @@ namespace Core.Models
         [DataType(DataType.MultilineText)]
         public string? Description { get; set; }
 
-        public decimal Price { get; set; }
+        public decimal Price { get; set; } = 0;
 
         public decimal TotalPrice 
         {
@@ -27,7 +27,7 @@ namespace Core.Models
             }
         }
 
-        public decimal Discount { get; set; }
+        public decimal Discount { get; set; } = 0;
 
         [MaxLength(100)]
         public string? Brand { get; set; }
@@ -48,6 +48,8 @@ namespace Core.Models
         [IgnoreDataMember]
         public virtual Category Category { get; set; }
 
+        [JsonIgnore]
+        [IgnoreDataMember]
         public virtual List<ShoppingCartItem> Items { get; set; }
     }
 }

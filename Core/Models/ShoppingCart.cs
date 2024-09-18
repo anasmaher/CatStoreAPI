@@ -11,6 +11,19 @@ namespace Core.Models
     {
         public int Id { get; set; }
 
+        public decimal price
+        {
+            get
+            {
+                decimal totalPrice = 0;
+                if (Items is not null)
+                    foreach (var item in Items)
+                        totalPrice += item.price;
+
+                return totalPrice;
+            }
+        }
+
         public virtual List<ShoppingCartItem> Items { get; set; }
     }
 }

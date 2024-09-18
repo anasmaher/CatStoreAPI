@@ -47,11 +47,11 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddItemAsync(int cartId, int ProductId)
+        public async Task<IActionResult> AddItemAsync(int cartId, int ProductId, int quantity)
         {
             try
             {
-                var item = await unitOfWork.ShoppingCarts.AddItemAsync(cartId, ProductId);
+                var item = await unitOfWork.ShoppingCarts.AddItemAsync(cartId, ProductId, quantity);
                 
                 return Ok(item);
             }

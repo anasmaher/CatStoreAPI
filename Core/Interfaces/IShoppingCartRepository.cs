@@ -14,7 +14,7 @@ namespace Core.Interfaces
 
         public Task<ShoppingCartItem> GetCartItemByIdAsync(int id);
 
-        public Task<ShoppingCartItem> AddItemAsync(int cartId, int ProductId);
+        public Task<ShoppingCartItem> AddItemAsync(int cartId, int ProductId, int quantity);
 
         public Task<ShoppingCartItem> UpdateCartItemAsync(int itemId, int quantity);
 
