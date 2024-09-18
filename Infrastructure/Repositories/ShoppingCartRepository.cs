@@ -35,6 +35,9 @@ namespace Infrastructure.Repositories
                 .ThenInclude(x => x.Product)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
+            if (cart is null)
+                cart = await CreateCartAsync();
+
             return cart;
         }
 
@@ -54,17 +57,17 @@ namespace Infrastructure.Repositories
                 cart = await CreateCartAsync();
             }
 
-            var product = await dbContext.Products
-                .FirstOrDefaultAsync(x => x.ShoppingCartId == cartId && x.Id == ProductId);
+            var itemHasProduct = await dbContext.Items
+                .FirstOrDefaultAsync(x => x.ShoppingCartId == cartId && x.ProductId == ProductId);
 
             var item = new ShoppingCartItem();
 
-            if (product is null)
+            if (itemHasProduct is null)
             {
-                item = new ShoppingCartItem()
+                 item = new ShoppingCartItem()
                 {
                     ProductId = ProductId,
-                    Product = product,
+                    Product = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == ProductId),
                     Quantity = 1,
                     ShoppingCartId = cartId,
                     ShoppingCart = cart

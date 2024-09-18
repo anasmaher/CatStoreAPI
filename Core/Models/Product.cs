@@ -44,11 +44,15 @@ namespace Core.Models
         [ForeignKey(nameof(CategoryId))]
         public int CategoryId { get; set; }
 
+        [JsonIgnore]
+        [IgnoreDataMember]
         public virtual Category Category { get; set; }
 
         [ForeignKey(nameof(ShoppingCartId))]
         public int ShoppingCartId { get; set; }
 
+        [JsonIgnore]
+        [IgnoreDataMember]
         public virtual List<ShoppingCart> ShoppingCarts { get; set; }
 
         public virtual List<ShoppingCartItem> Items { get; set; }
