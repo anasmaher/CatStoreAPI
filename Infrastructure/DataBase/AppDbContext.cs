@@ -1,6 +1,7 @@
 ﻿using CatStoreAPI.Core.Models;
 using Core.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace Infrastructure.DataBase
 {
@@ -18,9 +19,22 @@ namespace Infrastructure.DataBase
                 .HasOne(c => c.Category)
                 .WithMany(p => p.Products)
                 .HasForeignKey(x => x.CategoryId);
+
+            builder.Entity<ShoppingCart>()
+                .HasMany(i => i.Items)
+                .WithOne(s => s.ShoppingCart)
+                .HasForeignKey(x => x.ShoppingCartId);
+
+            builder.Entity<ShoppingCartItem>()
+                .HasOne(p => p.Product)
+                .WithMany(i => i.Items)
+                .HasForeignKey(x => x.ProductId);
+
         }
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<ShoppingCart> ShoppingCarts { get; set; }
+        public DbSet<ShoppingCartItem> Items { get; set; }
     }
 }

@@ -11,11 +11,11 @@ namespace Core.Interfaces
     public interface IUnitOfWork
     {
         ICategoryRepository Categories { get; }
-
         IProductRepository Products { get; }
+        IShoppingCartRepository ShoppingCarts { get; }
 
         Task<Product> AddProductWithNewCategoryAsync(Product product, string categoryName);
 
-        Task SaveAsync();
+        Task SaveChangesAsync();
     }
 }

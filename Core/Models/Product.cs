@@ -33,9 +33,6 @@ namespace Core.Models
         public string? Brand { get; set; }
 
         [MaxLength(100)]
-        public string CategoryName { get; set; }
-
-        [MaxLength(100)]
         public string? LifeStage { get; set; }
 
         [MaxLength(500)]
@@ -47,8 +44,13 @@ namespace Core.Models
         [ForeignKey(nameof(CategoryId))]
         public int CategoryId { get; set; }
 
-        [JsonIgnore]
-        [IgnoreDataMember]
-        public Category Category { get; set; }
+        public virtual Category Category { get; set; }
+
+        [ForeignKey(nameof(ShoppingCartId))]
+        public int ShoppingCartId { get; set; }
+
+        public virtual List<ShoppingCart> ShoppingCarts { get; set; }
+
+        public virtual List<ShoppingCartItem> Items { get; set; }
     }
 }

@@ -46,22 +46,16 @@ namespace CatStoreAPI.Controllers
         {
             var existProductCode = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
 
-            if (existProductCode != null)
+            if (existProductCode is not null)
                 ModelState.AddModelError("", "Product Code already exists.");
 
             if (ModelState.IsValid)
             {
-                var existCategory = await unitOfWork.Categories.GetSingleAsync(x => x.Name == productDTO.CategoryName);
-
                 var createdProduct = mapper.Map<Product>(productDTO);
 
-                if (existCategory == null)
-                    await unitOfWork.AddProductWithNewCategoryAsync(createdProduct, productDTO.CategoryName);
-                else
-                    await unitOfWork.Products.AddAsync(createdProduct);
+                await unitOfWork.AddProductWithNewCategoryAsync(createdProduct, productDTO.CategoryName);
 
-                await unitOfWork.SaveAsync();
-
+                await unitOfWork.SaveChangesAsync();
                 return Ok(createdProduct);
             }
             else
@@ -80,15 +74,15 @@ namespace CatStoreAPI.Controllers
             {
                 try
                 {
-                    var updatedProduct = mapper.Map<Product>(productDTO);
-                    await unitOfWork.Products.UpdateProductAsync(Id, updatedProduct);
-                    await unitOfWork.SaveAsync();
+                    var updatedProduct = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
+                    await unitOfWork.Products.UpdateProductAsync(Id, updatedProduct, productDTO.CategoryName);
 
+                    await unitOfWork.SaveChangesAsync();
                     return Ok(updatedProduct);
                 }
                 catch (Exception ex)
                 {
-                    return NotFound(ex.Message);
+                    return NotFound("Category does not exist!");
                 }
             }
             else
@@ -102,8 +96,8 @@ namespace CatStoreAPI.Controllers
             {
                 var removedProduct = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
                 await unitOfWork.Products.RemoveAsync(x => x.Id == Id);
-                await unitOfWork.SaveAsync();
 
+                await unitOfWork.SaveChangesAsync();
                 return Ok(removedProduct);
             }
             catch (Exception ex)
@@ -116,7 +110,8 @@ namespace CatStoreAPI.Controllers
         public async Task<IActionResult> SetOfferOnSingleProduct(int Id, int Discount)
         {
             var productOffer = await unitOfWork.Products.SetOfferOnSingleProduct(Id, Discount);
-            await unitOfWork.SaveAsync();
+            
+            await unitOfWork.SaveChangesAsync();
             return Ok(productOffer);
         }
 
@@ -124,7 +119,8 @@ namespace CatStoreAPI.Controllers
         public async Task<IActionResult> SetOfferOnMultipleProducts(List<int> Ids, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnMultipleProducts(Ids, Discount);
-            await unitOfWork.SaveAsync();
+
+            await unitOfWork.SaveChangesAsync();
             return Ok(productsOffer);
         }
 
@@ -132,7 +128,8 @@ namespace CatStoreAPI.Controllers
         public async Task<IActionResult> SetOfferOnBrandProducts(string BrandName, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnBrandProducts(BrandName, Discount);
-            await unitOfWork.SaveAsync();
+
+            await unitOfWork.SaveChangesAsync();
             return Ok(productsOffer);
         }
 
@@ -140,7 +137,8 @@ namespace CatStoreAPI.Controllers
         public async Task<IActionResult> SetOfferOnCategoriesProducts(string CategoryName, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnCategoryProducts(CategoryName, Discount);
-            await unitOfWork.SaveAsync();
+
+            await unitOfWork.SaveChangesAsync();
             return Ok(productsOffer);
         }
     }

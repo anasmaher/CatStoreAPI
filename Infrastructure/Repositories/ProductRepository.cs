@@ -15,10 +15,12 @@ namespace Infrastructure.Repositories
     public class ProductRepository : Repository<Product>, IProductRepository
     {
         private readonly AppDbContext dbContext;
+        private readonly ICategoryRepository categoryRepo;
 
-        public ProductRepository(AppDbContext _dbContext) : base(_dbContext)
+        public ProductRepository(AppDbContext _dbContext, ICategoryRepository _categoryRepo) : base(_dbContext)
         {
             dbContext = _dbContext;
+            categoryRepo = _categoryRepo;
         }
 
         public async Task<IEnumerable<Product>> SetOfferOnBrandProducts(string BrandName, int Discount)
@@ -30,20 +32,18 @@ namespace Infrastructure.Repositories
                 product.Discount = Discount;
             }
 
-            await SaveAsync();
             return products;
         }
 
         public async Task<IEnumerable<Product>> SetOfferOnCategoryProducts(string CategoryName, int Discount)
         {
-            var products = await GetAllAsync(x => x.CategoryName == CategoryName);
+            var products = await GetAllAsync(x => x.Category.Name == CategoryName);
 
             foreach (var product in products)
             {
                 product.Discount = Discount;
             }
 
-            await SaveAsync();
             return products;
         }
 
@@ -59,7 +59,6 @@ namespace Infrastructure.Repositories
                 products.Add(product);
             }
 
-            await SaveAsync();
             return products;
         }
 
@@ -71,14 +70,13 @@ namespace Infrastructure.Repositories
             {
                 product.Discount = Discount;
 
-                await SaveAsync();
                 return product;
             }
             else
                 throw new Exception("Product not found!");
         }
 
-        public async Task<Product> UpdateProductAsync(int Id, Product product)
+        public async Task<Product> UpdateProductAsync(int Id, Product product, string categoryName)
         {
             var UpdatedProduct = await GetSingleAsync(x => x.Id == Id);
 
@@ -91,8 +89,10 @@ namespace Infrastructure.Repositories
                 UpdatedProduct.LifeStage = product.LifeStage;
                 UpdatedProduct.ProductCode = product.ProductCode;
                 UpdatedProduct.ImageUrl = product.ImageUrl;
+                var cat= await categoryRepo.GetSingleAsync(x => x.Name == categoryName);
+                UpdatedProduct.CategoryId = cat.Id;
 
-                await SaveAsync();
+                dbContext.Update(UpdatedProduct);
 
                 return UpdatedProduct;
             }

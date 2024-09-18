@@ -27,8 +27,6 @@ namespace Infrastructure.Repositories
                 UpdatedCategory.Name = category.Name;
                 UpdatedCategory.ImageUrl = category.ImageUrl;
 
-                dbContext.SaveChanges();
-
                 return UpdatedCategory;
             }
             else

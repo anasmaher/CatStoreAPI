@@ -13,19 +13,19 @@ namespace CatStoreAPI.Controllers
     [ApiController]
     public class CategoryController : ControllerBase
     {
-        private readonly ICategoryRepository categoryRepo;
+        private readonly IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
 
-        public CategoryController(ICategoryRepository _categoryRepo, IMapper _mapper)
+        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper)
         {
-            categoryRepo = _categoryRepo;
+            unitOfWork = _unitOfWork;
             mapper = _mapper;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAllCategories()
         {
-            var categories = await categoryRepo.GetAllAsync();
+            var categories = await unitOfWork.Categories.GetAllAsync();
 
             return Ok(categories);
         }
@@ -35,7 +35,7 @@ namespace CatStoreAPI.Controllers
         {
             try
             {
-                var category = await categoryRepo.GetSingleAsync(x => x.Id == Id);
+                var category = await unitOfWork.Categories.GetSingleAsync(x => x.Id == Id);
 
                 return Ok(category);
             }
@@ -48,8 +48,8 @@ namespace CatStoreAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCategory(CategoryCreatDTO categoryDTO)
         {
-            var existsName = await categoryRepo.GetSingleAsync(x => x.Name.ToLower() == categoryDTO.Name.ToLower());
-            var existsDisplayOrder = await categoryRepo.GetSingleAsync(x => x.DisplayOrder == categoryDTO.DisplayOrder);
+            var existsName = await unitOfWork.Categories.GetSingleAsync(x => x.Name.ToLower() == categoryDTO.Name.ToLower());
+            var existsDisplayOrder = await unitOfWork.Categories.GetSingleAsync(x => x.DisplayOrder == categoryDTO.DisplayOrder);
 
             if (existsName is not null)
                 ModelState.AddModelError("", "Category already exists!");
@@ -60,8 +60,9 @@ namespace CatStoreAPI.Controllers
             if (ModelState.IsValid)
             {
                 var createdCategory = mapper.Map<Category>(categoryDTO);
-                createdCategory = await categoryRepo.AddAsync(createdCategory);
+                createdCategory = await unitOfWork.Categories.AddAsync(createdCategory);
 
+                await unitOfWork.SaveChangesAsync();
                 return Ok(createdCategory);
             }
             else
@@ -72,8 +73,8 @@ namespace CatStoreAPI.Controllers
         [HttpPut("{Id}")]
         public async Task<IActionResult> EditCategory(int Id, CategoryCreatDTO categoryUpdateDTO)
         {
-            var existsName = await categoryRepo.GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
-            var existsDisplayOrder = await categoryRepo.GetSingleAsync(x => x.DisplayOrder == categoryUpdateDTO.DisplayOrder);
+            var existsName = await unitOfWork.Categories.GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
+            var existsDisplayOrder = await unitOfWork.Categories.GetSingleAsync(x => x.DisplayOrder == categoryUpdateDTO.DisplayOrder);
 
             if (existsDisplayOrder is not null)
                 ModelState.AddModelError("", "Display Order already exists!");
@@ -86,8 +87,9 @@ namespace CatStoreAPI.Controllers
                 try
                 {
                     var editedCategory = mapper.Map<Category>(categoryUpdateDTO);
-                    editedCategory = await categoryRepo.UpdateAsync(Id, editedCategory);
+                    editedCategory = await unitOfWork.Categories.UpdateAsync(Id, editedCategory);
 
+                    await unitOfWork.SaveChangesAsync();
                     return Ok(editedCategory);
                 }
                 catch (Exception ex)
@@ -104,9 +106,11 @@ namespace CatStoreAPI.Controllers
         {
             try
             {
-                var removedCategory = await categoryRepo.GetSingleAsync(x => x.Id == Id);
+                var removedCategory = await unitOfWork.Categories.GetSingleAsync(x => x.Id == Id);
 
-                await categoryRepo.RemoveAsync(x => x.Id == Id);
+                await unitOfWork.Categories.RemoveAsync(x => x.Id == Id);
+
+                await unitOfWork.SaveChangesAsync();
                 return Ok(removedCategory);
             }
             catch (Exception ex)

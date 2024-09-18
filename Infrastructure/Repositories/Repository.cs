@@ -19,7 +19,6 @@ namespace Infrastructure.Repositories
         public async Task<T> AddAsync(T Entity)
         {
             await dbSet.AddAsync(Entity);
-            await SaveAsync();
 
             return Entity;
         }
@@ -51,16 +50,10 @@ namespace Infrastructure.Repositories
             if (res is not null)
             {
                 dbSet.Remove(res);
-                await SaveAsync();
             }
             else
                 throw new Exception("Not found!");
 
-        }
-
-        public async Task SaveAsync()
-        {
-            await dbContext.SaveChangesAsync();
         }
     }
 }

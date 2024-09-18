@@ -16,13 +16,16 @@ namespace CatStoreAPI
             // Add services to the container.
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseLazyLoadingProxies().UseSqlServer(connectionString));
 
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
 
-            builder.Services.AddControllers().AddNewtonsoftJson();
+            builder.Services.AddControllers().AddNewtonsoftJson(options =>
+                options.SerializerSettings.ReferenceLoopHandling =
+                Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 
             builder.Services.AddAutoMapper(typeof(MappingConfig));
 

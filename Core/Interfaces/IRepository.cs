@@ -11,7 +11,5 @@ namespace Core.Interfaces
         Task<T> AddAsync(T Entity);
 
         Task RemoveAsync(Expression<Func<T, bool>> filter);
-
-        Task SaveAsync();
     }
 }

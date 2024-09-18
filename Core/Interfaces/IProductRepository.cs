@@ -5,7 +5,7 @@ namespace Core.Interfaces
 {
     public interface IProductRepository : IRepository<Product>
     {
-        public Task<Product> UpdateProductAsync(int Id, Product obj);
+        public Task<Product> UpdateProductAsync(int Id, Product obj, string categoryName);
 
         Task<Product> SetOfferOnSingleProduct(int Id, int Discount);
 
