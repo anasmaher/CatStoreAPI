@@ -16,7 +16,7 @@ namespace Infrastructure.Repositories
             this.dbSet = dbContext.Set<T>();
         }
 
-        public async Task<T> AddAsync(T Entity)
+        public virtual async Task<T> AddAsync(T Entity)
         {
             await dbSet.AddAsync(Entity);
 

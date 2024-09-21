@@ -2,10 +2,8 @@
 using CatStoreAPI.Core.Models;
 using CatStoreAPI.DTO.CategoryDTOs;
 using Core.Interfaces;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.JsonPatch;
+using Infrastructure.Helpers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace CatStoreAPI.Controllers
 {
@@ -15,17 +13,20 @@ namespace CatStoreAPI.Controllers
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
+        private readonly ReorderCategories reorderCategoriesHelper;
 
-        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper)
+        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, ReorderCategories _reorderCategoriesHelper)
         {
             unitOfWork = _unitOfWork;
             mapper = _mapper;
+            reorderCategoriesHelper = _reorderCategoriesHelper;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAllCategories()
         {
             var categories = await unitOfWork.Categories.GetAllAsync();
+            categories.OrderBy(x => x.DisplayOrder).ToList();
 
             return Ok(categories);
         }
@@ -48,6 +49,7 @@ namespace CatStoreAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCategory(CategoryCreatDTO categoryDTO)
         {
+            // Check if the Name or the display order already exists 
             var existsName = await unitOfWork.Categories.GetSingleAsync(x => x.Name.ToLower() == categoryDTO.Name.ToLower());
             var existsDisplayOrder = await unitOfWork.Categories.GetSingleAsync(x => x.DisplayOrder == categoryDTO.DisplayOrder);
 
@@ -60,6 +62,11 @@ namespace CatStoreAPI.Controllers
             if (ModelState.IsValid)
             {
                 var createdCategory = mapper.Map<Category>(categoryDTO);
+
+                // Get the current maximum display order and assign the following order to the new category
+                var categories = await unitOfWork.Categories.GetAllAsync();
+                createdCategory.DisplayOrder = categories.Max(x => x.DisplayOrder) + 1;
+
                 createdCategory = await unitOfWork.Categories.AddAsync(createdCategory);
 
                 await unitOfWork.SaveChangesAsync();
@@ -71,8 +78,9 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPut("{Id}")]
-        public async Task<IActionResult> EditCategory(int Id, CategoryCreatDTO categoryUpdateDTO)
+        public async Task<IActionResult> EditCategory(int Id, CategoryUpdateDTO categoryUpdateDTO)
         {
+            // Check if the new Name or the new display order already exists 
             var existsName = await unitOfWork.Categories.GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
             var existsDisplayOrder = await unitOfWork.Categories.GetSingleAsync(x => x.DisplayOrder == categoryUpdateDTO.DisplayOrder);
 
@@ -86,6 +94,8 @@ namespace CatStoreAPI.Controllers
             {
                 try
                 {
+                    var currentCategory = await unitOfWork.Categories.GetSingleAsync(x => x.Id == Id);
+
                     var editedCategory = mapper.Map<Category>(categoryUpdateDTO);
                     editedCategory = await unitOfWork.Categories.UpdateAsync(Id, editedCategory);
 
