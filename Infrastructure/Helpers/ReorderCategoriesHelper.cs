@@ -9,26 +9,35 @@ using System.Threading.Tasks;
 
 namespace Infrastructure.Helpers
 {
-    public class ReorderCategories
+    public class ReorderCategoriesHelper
     {
         private readonly AppDbContext dbContext;
 
-        public ReorderCategories(AppDbContext _dbContext)
+        public ReorderCategoriesHelper(AppDbContext _dbContext)
         {
             dbContext = _dbContext;
         }
 
-        public async Task ReorderAsync(Category category, int newOrder, int oldOrder)
+        public async Task ReorderOnRemoveAsync(int removedDisplayOrder)
+        {
+            var categories = await dbContext.Categories
+                .Where(x => x.DisplayOrder > removedDisplayOrder)
+                .ToListAsync();
+
+            foreach (var category in categories)
+            {
+                category.DisplayOrder--;
+            }
+        }
+
+        public async Task ReorderOnUpdateAsync(Category category, int newOrder, int oldOrder)
         {
             if (oldOrder == newOrder) return;
 
             if (oldOrder > newOrder)
             {
-                category.DisplayOrder = newOrder;
-
                 var categories = await dbContext.Categories
                     .Where(x => x.DisplayOrder >= newOrder && x.DisplayOrder < oldOrder)
-                    .Skip(1)
                     .OrderBy(x => x.DisplayOrder)
                     .ToListAsync();
 
@@ -36,21 +45,22 @@ namespace Infrastructure.Helpers
                 {
                     categories[i].DisplayOrder++;
                 }
+
+                category.DisplayOrder = newOrder;
             }
             else
             {
-                category.DisplayOrder = newOrder;
-
                 var categories = await dbContext.Categories
                     .Where(x => x.DisplayOrder >= oldOrder && x.DisplayOrder <= newOrder)
-                    .SkipLast(1)
                     .OrderBy(x => x.DisplayOrder)
                     .ToListAsync();
 
-                for(int i = 0; i <categories.Count; i++)
+                for (int i = 0; i < categories.Count; i++)
                 {
                     categories[i].DisplayOrder--;
                 }
+
+                category.DisplayOrder = newOrder;
             }
 
             await dbContext.SaveChangesAsync();

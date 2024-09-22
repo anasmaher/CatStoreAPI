@@ -13,9 +13,9 @@ namespace CatStoreAPI.Controllers
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
-        private readonly ReorderCategories reorderCategoriesHelper;
+        private readonly ReorderCategoriesHelper reorderCategoriesHelper;
 
-        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, ReorderCategories _reorderCategoriesHelper)
+        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, ReorderCategoriesHelper _reorderCategoriesHelper)
         {
             unitOfWork = _unitOfWork;
             mapper = _mapper;
@@ -26,7 +26,7 @@ namespace CatStoreAPI.Controllers
         public async Task<IActionResult> GetAllCategories()
         {
             var categories = await unitOfWork.Categories.GetAllAsync();
-            categories.OrderBy(x => x.DisplayOrder).ToList();
+            categories = categories.OrderBy(x => x.DisplayOrder).ToList();
 
             return Ok(categories);
         }
@@ -51,13 +51,9 @@ namespace CatStoreAPI.Controllers
         {
             // Check if the Name or the display order already exists 
             var existsName = await unitOfWork.Categories.GetSingleAsync(x => x.Name.ToLower() == categoryDTO.Name.ToLower());
-            var existsDisplayOrder = await unitOfWork.Categories.GetSingleAsync(x => x.DisplayOrder == categoryDTO.DisplayOrder);
 
             if (existsName is not null)
                 ModelState.AddModelError("", "Category already exists!");
-            
-            if (existsDisplayOrder is not null)
-                ModelState.AddModelError("", "Display order already exists!");
 
             if (ModelState.IsValid)
             {
@@ -65,7 +61,7 @@ namespace CatStoreAPI.Controllers
 
                 // Get the current maximum display order and assign the following order to the new category
                 var categories = await unitOfWork.Categories.GetAllAsync();
-                createdCategory.DisplayOrder = categories.Max(x => x.DisplayOrder) + 1;
+                createdCategory.DisplayOrder = categories.DefaultIfEmpty().Max(x => x?.DisplayOrder ?? 0) + 1;
 
                 createdCategory = await unitOfWork.Categories.AddAsync(createdCategory);
 
@@ -81,11 +77,8 @@ namespace CatStoreAPI.Controllers
         public async Task<IActionResult> EditCategory(int Id, CategoryUpdateDTO categoryUpdateDTO)
         {
             // Check if the new Name or the new display order already exists 
-            var existsName = await unitOfWork.Categories.GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
-            var existsDisplayOrder = await unitOfWork.Categories.GetSingleAsync(x => x.DisplayOrder == categoryUpdateDTO.DisplayOrder);
-
-            if (existsDisplayOrder is not null)
-                ModelState.AddModelError("", "Display Order already exists!");
+            var existsName = await unitOfWork.Categories
+                .GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
 
             if (existsName is not null)
                 ModelState.AddModelError("", "Category already exists!");
@@ -117,6 +110,9 @@ namespace CatStoreAPI.Controllers
             try
             {
                 var removedCategory = await unitOfWork.Categories.GetSingleAsync(x => x.Id == Id);
+
+                // removing a category leads to reordering the display order of the others.
+                await reorderCategoriesHelper.ReorderOnRemoveAsync(removedCategory.DisplayOrder);
 
                 await unitOfWork.Categories.RemoveAsync(x => x.Id == Id);
 

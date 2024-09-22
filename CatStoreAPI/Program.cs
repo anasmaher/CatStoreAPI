@@ -3,6 +3,7 @@ using Core.Interfaces;
 using Infrastructure.Repositories;
 using Infrastructure.DataBase;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Helpers;
 
 namespace CatStoreAPI
 {
@@ -21,6 +22,7 @@ namespace CatStoreAPI
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
+            builder.Services.AddScoped<ReorderCategoriesHelper>();
 
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling =

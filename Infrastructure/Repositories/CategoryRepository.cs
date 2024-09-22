@@ -8,9 +8,9 @@ namespace Infrastructure.Repositories
     public class CategoryRepository : Repository<Category>, ICategoryRepository
     {
         private readonly AppDbContext dbContext;
-        private readonly ReorderCategories reorderCategoriesHelper;
+        private readonly ReorderCategoriesHelper reorderCategoriesHelper;
 
-        public CategoryRepository(AppDbContext _dbContext, ReorderCategories _reorderCategoriesHelper) : base(_dbContext)
+        public CategoryRepository(AppDbContext _dbContext, ReorderCategoriesHelper _reorderCategoriesHelper) : base(_dbContext)
         {
             dbContext = _dbContext;
             reorderCategoriesHelper = _reorderCategoriesHelper;
@@ -25,7 +25,7 @@ namespace Infrastructure.Repositories
                 UpdatedCategory.Name = category.Name;
                 UpdatedCategory.ImageUrl = category.ImageUrl;
 
-                await reorderCategoriesHelper.ReorderAsync(UpdatedCategory, UpdatedCategory.DisplayOrder, category.DisplayOrder);
+                await reorderCategoriesHelper.ReorderOnUpdateAsync(UpdatedCategory, category.DisplayOrder, UpdatedCategory.DisplayOrder);
 
                 return UpdatedCategory;
             }
