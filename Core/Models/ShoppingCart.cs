@@ -1,8 +1,11 @@
-﻿using System;
+﻿using Core.Models.AuthModels;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Core.Models
@@ -25,5 +28,10 @@ namespace Core.Models
         }
 
         public virtual List<ShoppingCartItem> Items { get; set; }
+
+        [JsonIgnore]
+        [IgnoreDataMember]
+        public virtual User user { get; set; }
+
     }
 }

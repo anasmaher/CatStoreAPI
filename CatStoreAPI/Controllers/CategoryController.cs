@@ -4,7 +4,7 @@ using CatStoreAPI.Core.Models;
 using CatStoreAPI.DTO.CategoryDTOs;
 using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Helpers;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -16,14 +16,14 @@ namespace CatStoreAPI.Controllers
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
-        private readonly ReorderCategoriesHelper reorderCategoriesHelper;
+        private readonly ReorderCategoriesService reorderCategoriesService;
         private readonly APIResponse response;
 
-        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, ReorderCategoriesHelper _reorderCategoriesHelper)
+        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, ReorderCategoriesService _reorderCategoriesService)
         {
             unitOfWork = _unitOfWork;
             mapper = _mapper;
-            reorderCategoriesHelper = _reorderCategoriesHelper;
+            reorderCategoriesService = _reorderCategoriesService;
             this.response = new APIResponse();
         }
 
@@ -137,7 +137,7 @@ namespace CatStoreAPI.Controllers
                 var removedCategory = await unitOfWork.Categories.GetSingleAsync(x => x.Id == Id);
 
                 // removing a category leads to reordering the display order of the others.
-                await reorderCategoriesHelper.ReorderOnRemoveAsync(removedCategory.DisplayOrder);
+                await reorderCategoriesService.ReorderOnRemoveAsync(removedCategory.DisplayOrder);
 
                 await unitOfWork.Categories.RemoveAsync(x => x.Id == Id);
 

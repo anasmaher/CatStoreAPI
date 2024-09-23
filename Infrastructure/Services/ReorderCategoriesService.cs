@@ -7,13 +7,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Infrastructure.Helpers
+namespace Infrastructure.Services
 {
-    public class ReorderCategoriesHelper
+    public class ReorderCategoriesService
     {
         private readonly AppDbContext dbContext;
 
-        public ReorderCategoriesHelper(AppDbContext _dbContext)
+        public ReorderCategoriesService(AppDbContext _dbContext)
         {
             dbContext = _dbContext;
         }

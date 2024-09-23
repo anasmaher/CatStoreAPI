@@ -3,7 +3,13 @@ using Core.Interfaces;
 using Infrastructure.Repositories;
 using Infrastructure.DataBase;
 using Microsoft.EntityFrameworkCore;
-using Infrastructure.Helpers;
+using Infrastructure.Services;
+using CatStoreAPI.Auth;
+using Core.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace CatStoreAPI
 {
@@ -23,7 +29,7 @@ namespace CatStoreAPI
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
             builder.Services.AddScoped<IWishListRepository, WishListRepository>();
-            builder.Services.AddScoped<ReorderCategoriesHelper>();
+            builder.Services.AddScoped<ReorderCategoriesService>();
 
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling =
@@ -31,9 +37,26 @@ namespace CatStoreAPI
 
             builder.Services.AddAutoMapper(typeof(MappingConfig));
 
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["JWT:Issuer"],
+                        ValidAudience = builder.Configuration["JWT:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"]))
+                    };
+                });
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddAuthorization();
+
 
             var app = builder.Build();
 
@@ -48,6 +71,7 @@ namespace CatStoreAPI
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();

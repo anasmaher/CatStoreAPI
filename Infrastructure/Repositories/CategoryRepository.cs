@@ -1,19 +1,19 @@
 ﻿using CatStoreAPI.Core.Models;
 using Core.Interfaces;
 using Infrastructure.DataBase;
-using Infrastructure.Helpers;
+using Infrastructure.Services;
 
 namespace Infrastructure.Repositories
 {
     public class CategoryRepository : Repository<Category>, ICategoryRepository
     {
         private readonly AppDbContext dbContext;
-        private readonly ReorderCategoriesHelper reorderCategoriesHelper;
+        private readonly ReorderCategoriesService reorderCategoriesService;
 
-        public CategoryRepository(AppDbContext _dbContext, ReorderCategoriesHelper _reorderCategoriesHelper) : base(_dbContext)
+        public CategoryRepository(AppDbContext _dbContext, ReorderCategoriesService _reorderCategoriesService) : base(_dbContext)
         {
             dbContext = _dbContext;
-            reorderCategoriesHelper = _reorderCategoriesHelper;
+            reorderCategoriesService = _reorderCategoriesService;
         }
 
         public async Task<Category> UpdateAsync(int Id, Category category)
@@ -25,7 +25,7 @@ namespace Infrastructure.Repositories
                 UpdatedCategory.Name = category.Name;
                 UpdatedCategory.ImageUrl = category.ImageUrl;
 
-                await reorderCategoriesHelper.ReorderOnUpdateAsync(UpdatedCategory, category.DisplayOrder, UpdatedCategory.DisplayOrder);
+                await reorderCategoriesService.ReorderOnUpdateAsync(UpdatedCategory, category.DisplayOrder, UpdatedCategory.DisplayOrder);
 
                 return UpdatedCategory;
             }
