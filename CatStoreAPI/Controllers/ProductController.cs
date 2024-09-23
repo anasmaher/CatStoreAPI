@@ -4,6 +4,7 @@ using CatStoreAPI.DTO.ProductDTOs;
 using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace CatStoreAPI.Controllers
 {
@@ -13,36 +14,49 @@ namespace CatStoreAPI.Controllers
     {
         private readonly IMapper mapper;
         private readonly IUnitOfWork unitOfWork;
+        private readonly APIResponse response;
 
         public ProductController(IMapper mapper, IUnitOfWork unitOfWork)
         {
             this.mapper = mapper;
             this.unitOfWork = unitOfWork;
+            this.response = new APIResponse();
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProducts()
+        public async Task<ActionResult<APIResponse>> GetAllProducts()
         {
             var products = await unitOfWork.Products.GetAllAsync();
-            return Ok(products);
+
+            response.Result = products;
+            response.StatusCode = HttpStatusCode.OK;
+            response.IsSuccess = true;
+            return Ok(response);
         }
 
         [HttpGet("{Id}")]
-        public async Task<IActionResult> GetProductById(int Id)
+        public async Task<ActionResult<APIResponse>> GetProductById(int Id)
         {
             try
             {
                 var product = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
-                return Ok(product);
+
+                response.Result = product;
+                response.StatusCode = HttpStatusCode.OK;
+                response.IsSuccess = true;
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.IsSuccess = false;
+                response.Errors.Add(ex.Message);
+                return BadRequest(response);
             }
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateProduct(ProductCreateDTO productDTO)
+        public async Task<ActionResult<APIResponse>> CreateProduct(ProductCreateDTO productDTO)
         {
             var existProductCode = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
 
@@ -56,14 +70,18 @@ namespace CatStoreAPI.Controllers
                 await unitOfWork.AddProductWithNewCategoryAsync(createdProduct, productDTO.CategoryName);
 
                 await unitOfWork.SaveChangesAsync();
-                return Ok(createdProduct);
+
+                response.Result = createdProduct;
+                response.StatusCode = HttpStatusCode.Created;
+                response.IsSuccess = true;
+                return Ok(response);
             }
             else
                 return BadRequest(ModelState);
         }
 
         [HttpPut("{Id}")]
-        public async Task<IActionResult> EditProduct(int Id, ProductUpdateDTO productDTO)
+        public async Task<ActionResult<APIResponse>> EditProduct(int Id, ProductUpdateDTO productDTO)
         {
             var existProductCode = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
 
@@ -78,11 +96,18 @@ namespace CatStoreAPI.Controllers
                     await unitOfWork.Products.UpdateProductAsync(Id, updatedProduct, productDTO.CategoryName);
 
                     await unitOfWork.SaveChangesAsync();
-                    return Ok(updatedProduct);
+
+                    response.Result = updatedProduct;
+                    response.StatusCode = HttpStatusCode.OK;
+                    response.IsSuccess = true;
+                    return Ok(response);
                 }
                 catch (Exception ex)
                 {
-                    return NotFound("Category does not exist!");
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    response.IsSuccess = false;
+                    response.Errors.Add("Category not found!");
+                    return BadRequest(response);
                 }
             }
             else
@@ -90,7 +115,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpDelete("{Id}")]
-        public async Task<IActionResult> RemoveProduct(int Id)
+        public async Task<ActionResult<APIResponse>> RemoveProduct(int Id)
         {
             try
             {
@@ -98,48 +123,71 @@ namespace CatStoreAPI.Controllers
                 await unitOfWork.Products.RemoveAsync(x => x.Id == Id);
 
                 await unitOfWork.SaveChangesAsync();
-                return Ok(removedProduct);
+
+                response.Result = removedProduct;
+                response.StatusCode = HttpStatusCode.OK;
+                response.IsSuccess = true;
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.IsSuccess = false;
+                response.Errors.Add(ex.Message);
+                return BadRequest(response);
             }
         }
 
         [HttpPost("ProductOfferSingle/{Id}")]
-        public async Task<IActionResult> SetOfferOnSingleProduct(int Id, int Discount)
+        public async Task<ActionResult<APIResponse>> SetOfferOnSingleProduct(int Id, int Discount)
         {
             var productOffer = await unitOfWork.Products.SetOfferOnSingleProduct(Id, Discount);
             
             await unitOfWork.SaveChangesAsync();
-            return Ok(productOffer);
+
+            response.Result = productOffer;
+            response.StatusCode = HttpStatusCode.OK;
+            response.IsSuccess = true;
+            return Ok(response);
         }
 
         [HttpPost("ProductOfferMultiple")]
-        public async Task<IActionResult> SetOfferOnMultipleProducts(List<int> Ids, int Discount)
+        public async Task<ActionResult<APIResponse>> SetOfferOnMultipleProducts(List<int> Ids, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnMultipleProducts(Ids, Discount);
 
             await unitOfWork.SaveChangesAsync();
-            return Ok(productsOffer);
+
+            response.Result = productsOffer;
+            response.StatusCode = HttpStatusCode.OK;
+            response.IsSuccess = true;
+            return Ok(response);
         }
 
         [HttpPost("ProductOfferBrand")]
-        public async Task<IActionResult> SetOfferOnBrandProducts(string BrandName, int Discount)
+        public async Task<ActionResult<APIResponse>> SetOfferOnBrandProducts(string BrandName, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnBrandProducts(BrandName, Discount);
 
             await unitOfWork.SaveChangesAsync();
-            return Ok(productsOffer);
+
+            response.Result = productsOffer;
+            response.StatusCode = HttpStatusCode.OK;
+            response.IsSuccess = true;
+            return Ok(response);
         }
 
         [HttpPost("ProductOfferCategory")]
-        public async Task<IActionResult> SetOfferOnCategoriesProducts(string CategoryName, int Discount)
+        public async Task<ActionResult<APIResponse>> SetOfferOnCategoriesProducts(string CategoryName, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnCategoryProducts(CategoryName, Discount);
 
             await unitOfWork.SaveChangesAsync();
-            return Ok(productsOffer);
+
+            response.Result = productsOffer;
+            response.StatusCode = HttpStatusCode.OK;
+            response.IsSuccess = true;
+            return Ok(response);
         }
     }
 }

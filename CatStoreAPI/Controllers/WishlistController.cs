@@ -1,7 +1,9 @@
-﻿using Core.Interfaces;
+﻿using Azure;
+using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace CatStoreAPI.Controllers
 {
@@ -10,10 +12,12 @@ namespace CatStoreAPI.Controllers
     public class WishlistController : ControllerBase
     {
         private readonly IUnitOfWork unitOfWork;
+        private readonly APIResponse response;
 
         public WishlistController(IUnitOfWork _unitOfWork)
         {
             unitOfWork = _unitOfWork;
+            this.response = new APIResponse();
         }
 
         [HttpGet("{id}")]
@@ -23,11 +27,16 @@ namespace CatStoreAPI.Controllers
             {
                 var wishlist = await unitOfWork.WishLists.GetWishListWithProductsAsync(id);
 
-                return Ok(wishlist);
+                response.Result = wishlist;
+                response.StatusCode = HttpStatusCode.OK;
+                response.IsSuccess = true;
+                return Ok(response);
             }
             catch
             {
-                return BadRequest();
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.IsSuccess = false;
+                return BadRequest(response);
             }
         }
 
@@ -39,11 +48,16 @@ namespace CatStoreAPI.Controllers
                 var product = await unitOfWork.WishLists.AddWishlistProductAsync(wishlistId, productId);
                 await unitOfWork.SaveChangesAsync();
 
-                return Ok(product);
+                response.Result = product;
+                response.StatusCode = HttpStatusCode.OK;
+                response.IsSuccess = true;
+                return Ok(response);
             }
             catch
             {
-                return BadRequest();
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.IsSuccess = false;
+                return BadRequest(response);
             }
         }
 
@@ -55,11 +69,16 @@ namespace CatStoreAPI.Controllers
                 var product = await unitOfWork.WishLists.RemoveWishListItemAsync(wishlistId, productId);
                 await unitOfWork.SaveChangesAsync();
 
-                return Ok(product);
+                response.Result = product;
+                response.StatusCode = HttpStatusCode.OK;
+                response.IsSuccess = true;
+                return Ok(response);
             }
             catch
             {
-                return BadRequest();
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.IsSuccess = false;
+                return BadRequest(response);
             }
         }
     }
