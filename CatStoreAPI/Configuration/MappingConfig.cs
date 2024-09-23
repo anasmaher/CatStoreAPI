@@ -10,11 +10,9 @@ namespace CatStoreAPI.Configuration
     {
         public MappingConfig()
         {
-            CreateMap<Category, CategoryDTO>().ReverseMap();
             CreateMap<Category, CategoryCreatDTO>().ReverseMap();
             CreateMap<Category, CategoryUpdateDTO>().ReverseMap();
 
-            CreateMap<Product, ProductDTO>().ReverseMap();
             CreateMap<Product, ProductCreateDTO>().ReverseMap();
             CreateMap<Product, ProductUpdateDTO>().ReverseMap();
         }

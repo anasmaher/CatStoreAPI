@@ -80,7 +80,7 @@ namespace CatStoreAPI.Controllers
             var existsName = await unitOfWork.Categories
                 .GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
 
-            if (existsName is not null)
+            if (existsName is not null && existsName.Id != Id)
                 ModelState.AddModelError("", "Category already exists!");
 
             if (ModelState.IsValid)

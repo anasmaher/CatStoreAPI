@@ -18,10 +18,11 @@ namespace CatStoreAPI
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseLazyLoadingProxies().UseSqlServer(connectionString));
 
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
+            builder.Services.AddScoped<IWishListRepository, WishListRepository>();
             builder.Services.AddScoped<ReorderCategoriesHelper>();
 
             builder.Services.AddControllers().AddNewtonsoftJson(options =>

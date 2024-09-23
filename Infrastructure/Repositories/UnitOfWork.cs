@@ -8,24 +8,19 @@ namespace Infrastructure.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext dbContext;
-        private readonly ICategoryRepository categoryRepo;
-        private readonly IProductRepository productRepo;
-        private readonly IShoppingCartRepository shoppingCartRepo;
 
         public ICategoryRepository Categories { get; private set; }
         public IProductRepository Products { get; private set; }
         public IShoppingCartRepository ShoppingCarts { get; private set; }
+        public IWishListRepository WishLists { get; private set; }
 
-        public UnitOfWork(AppDbContext _dbContext, ICategoryRepository _categoryRepo, IProductRepository _productRepo, IShoppingCartRepository _shoppingCartRepo)
+        public UnitOfWork(AppDbContext _dbContext, ICategoryRepository _categoryRepo, IProductRepository _productRepo, IShoppingCartRepository _shoppingCartRepo, IWishListRepository _wishlistRepo)
         {
             dbContext = _dbContext;
-            categoryRepo = _categoryRepo;
-            productRepo = _productRepo;
-            shoppingCartRepo = _shoppingCartRepo;
-
             Categories = _categoryRepo;
             Products = _productRepo;
-            ShoppingCarts = shoppingCartRepo;
+            ShoppingCarts = _shoppingCartRepo;
+            WishLists = _wishlistRepo;
         }
 
         public async Task<Product> AddProductWithNewCategoryAsync(Product product, string categoryName)

@@ -16,7 +16,7 @@ namespace CatStoreAPI.Controllers
             unitOfWork = _unitOfWork;
         }
 
-        [HttpGet]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetCartWithItemsAsync(int id)
         {
             try
@@ -46,7 +46,7 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("{cartId}")]
         public async Task<IActionResult> AddItemAsync(int cartId, int ProductId, int quantity)
         {
             try

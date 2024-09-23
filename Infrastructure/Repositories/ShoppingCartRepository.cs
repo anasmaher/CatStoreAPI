@@ -19,7 +19,6 @@ namespace Infrastructure.Repositories
             var cart = new ShoppingCart();
             await dbContext.ShoppingCarts.AddAsync(cart);
 
-            await dbContext.SaveChangesAsync();
             return cart;
         }
 
@@ -48,9 +47,8 @@ namespace Infrastructure.Repositories
             var cart = await GetCartWithItemsAsync(cartId);
 
             if (cart is null)
-            {
                 cart = await CreateCartAsync();
-            }
+            
 
             var itemHasProduct = await dbContext.Items
                 .FirstOrDefaultAsync(x => x.ShoppingCartId == cartId && x.ProductId == ProductId);
@@ -73,8 +71,6 @@ namespace Infrastructure.Repositories
                 cart.Items.Add(item);
 
                 await dbContext.Items.AddAsync(item);
-
-                await dbContext.SaveChangesAsync();
             }
             else
             {
@@ -96,7 +92,6 @@ namespace Infrastructure.Repositories
             item.Quantity = quantity; 
 
             dbContext.Items.Update(item);
-            await dbContext.SaveChangesAsync();
 
             return item;
         }
@@ -107,7 +102,6 @@ namespace Infrastructure.Repositories
             var cart = item.ShoppingCart;
 
             dbContext.Items.Remove(item);
-            await dbContext.SaveChangesAsync();
 
             return item;
         }

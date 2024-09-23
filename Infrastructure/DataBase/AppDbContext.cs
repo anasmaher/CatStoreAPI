@@ -30,11 +30,16 @@ namespace Infrastructure.DataBase
                 .WithMany(i => i.Items)
                 .HasForeignKey(x => x.ProductId);
 
+            builder.Entity<WishList>()
+                .HasMany(w => w.Products)
+                .WithMany(p => p.WhishLists)
+            .   UsingEntity(j => j.ToTable("WishlistProducts"));
         }
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<ShoppingCart> ShoppingCarts { get; set; }
         public DbSet<ShoppingCartItem> Items { get; set; }
+        public DbSet<WishList> WishLists { get; set; }
     }
 }

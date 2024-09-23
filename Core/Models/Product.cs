@@ -51,5 +51,9 @@ namespace Core.Models
         [JsonIgnore]
         [IgnoreDataMember]
         public virtual List<ShoppingCartItem> Items { get; set; }
+
+        [JsonIgnore]
+        [IgnoreDataMember]
+        public virtual List<WishList> WhishLists { get; set; }
     }
 }
