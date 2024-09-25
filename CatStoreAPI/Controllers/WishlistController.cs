@@ -32,10 +32,11 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = true;
                 return Ok(response);
             }
-            catch
+            catch (Exception ex)
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.IsSuccess = false;
+                response.Errors.Add(ex.Message);
                 return BadRequest(response);
             }
         }
@@ -53,10 +54,11 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = true;
                 return Ok(response);
             }
-            catch
+            catch (Exception ex)
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.IsSuccess = false;
+                response.Errors.Add(ex.Message);
                 return BadRequest(response);
             }
         }
@@ -74,10 +76,11 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = true;
                 return Ok(response);
             }
-            catch
+            catch (Exception ex)
             {
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.IsSuccess = false;
+                response.Errors.Add(ex.Message);
                 return BadRequest(response);
             }
         }

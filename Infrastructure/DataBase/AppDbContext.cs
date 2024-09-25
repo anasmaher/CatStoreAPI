@@ -1,12 +1,11 @@
 ﻿using CatStoreAPI.Core.Models;
 using Core.Models;
-using Core.Models.AuthModels;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.DataBase
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<AppUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -36,9 +35,15 @@ namespace Infrastructure.DataBase
                 .WithMany(p => p.WhishLists)
             .   UsingEntity(j => j.ToTable("WishlistProducts"));
 
-            builder.Entity<User>()
-                .HasOne(u => u.Id)
-                .WithOne()
+            builder.Entity<ShoppingCart>()
+                .HasOne(u => u.User)
+                .WithOne(s => s.ShoppingCart)
+                .HasForeignKey<ShoppingCart>(x => x.userId);
+
+            builder.Entity<WishList>()
+                .HasOne(u => u.user)
+                .WithOne(s => s.WishList)
+                .HasForeignKey<WishList>(x => x.userId);
         }
 
         public DbSet<Category> Categories { get; set; }
@@ -46,6 +51,6 @@ namespace Infrastructure.DataBase
         public DbSet<ShoppingCart> ShoppingCarts { get; set; }
         public DbSet<ShoppingCartItem> Items { get; set; }
         public DbSet<WishList> WishLists { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<AppUser> Users { get; set; }
     }
 }
