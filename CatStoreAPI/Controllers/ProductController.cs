@@ -76,8 +76,7 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = true;
                 return Ok(response);
             }
-            else
-                return BadRequest(ModelState);
+            return BadRequest(ModelState);
         }
 
         [HttpPut("{Id}")]
@@ -110,8 +109,7 @@ namespace CatStoreAPI.Controllers
                     return BadRequest(response);
                 }
             }
-            else
-                return BadRequest(ModelState);
+            return BadRequest(ModelState);
         }
 
         [HttpDelete("{Id}")]

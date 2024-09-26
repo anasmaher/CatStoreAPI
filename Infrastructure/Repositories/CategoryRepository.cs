@@ -8,9 +8,9 @@ namespace Infrastructure.Repositories
     public class CategoryRepository : Repository<Category>, ICategoryRepository
     {
         private readonly AppDbContext dbContext;
-        private readonly ReorderCategoriesService reorderCategoriesService;
+        private readonly IReorderCategoriesService reorderCategoriesService;
 
-        public CategoryRepository(AppDbContext _dbContext, ReorderCategoriesService _reorderCategoriesService) : base(_dbContext)
+        public CategoryRepository(AppDbContext _dbContext, IReorderCategoriesService _reorderCategoriesService) : base(_dbContext)
         {
             dbContext = _dbContext;
             reorderCategoriesService = _reorderCategoriesService;

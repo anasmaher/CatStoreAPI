@@ -16,10 +16,10 @@ namespace CatStoreAPI.Controllers
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
-        private readonly ReorderCategoriesService reorderCategoriesService;
+        private readonly IReorderCategoriesService reorderCategoriesService;
         private readonly APIResponse response;
 
-        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, ReorderCategoriesService _reorderCategoriesService)
+        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, IReorderCategoriesService _reorderCategoriesService)
         {
             unitOfWork = _unitOfWork;
             mapper = _mapper;
@@ -86,8 +86,7 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = true;
                 return Ok(response);
             }
-            else
-                return BadRequest(ModelState);
+            return BadRequest(ModelState);
 
         }
 
@@ -125,8 +124,7 @@ namespace CatStoreAPI.Controllers
                     return NotFound(response);
                 }
             }
-            else
-                return BadRequest(ModelState);
+            return BadRequest(ModelState);
         }
 
         [HttpDelete("{Id}")]

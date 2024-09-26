@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Core.Services;
 
 namespace CatStoreAPI
 {
@@ -29,7 +30,10 @@ namespace CatStoreAPI
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
             builder.Services.AddScoped<IWishListRepository, WishListRepository>();
-            builder.Services.AddScoped<ReorderCategoriesService>();
+            builder.Services.AddScoped<IReorderCategoriesService, ReorderCategoriesService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddIdentity<AppUser, IdentityRole>()
+                .AddEntityFrameworkStores<AppDbContext>();
 
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling =
