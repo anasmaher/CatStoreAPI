@@ -16,12 +16,14 @@ namespace CatStoreAPI.Controllers
     {
         private readonly UserManager<AppUser> userManager;
         private readonly IUserService userService;
+        private readonly ITokenService tokenService;
         private readonly APIResponse response;
 
-        public AccountController(UserManager<AppUser> userManager, IUserService userService)
+        public AccountController(UserManager<AppUser> userManager, IUserService userService, ITokenService tokenService)
         {
             this.userManager = userManager;
             this.userService = userService;
+            this.tokenService = tokenService;
             response = new APIResponse();
         }
 
@@ -30,12 +32,7 @@ namespace CatStoreAPI.Controllers
         {
             if (ModelState.IsValid)
             {
-                AppUser user = new AppUser();
-
-                user.Email = registerDTO.email;
-                user.FirstName = registerDTO.firstName;
-                user.LastName = registerDTO.lastName;
-                IdentityResult res = await userManager.CreateAsync(user, registerDTO.password);
+                var res = await userService.CreateUserAsync(registerDTO.firstName, registerDTO.lastName, registerDTO.email, registerDTO.password);
 
                 response.Result = res.Succeeded;
                 if (res.Succeeded)
@@ -68,11 +65,17 @@ namespace CatStoreAPI.Controllers
 
                 if (user is not null)
                 {
+                    var token = await tokenService.GenerateTokenAsync(user);
 
+                    response.IsSuccess = true;
+                    response.StatusCode = HttpStatusCode.OK;
+                    response.Result = new { token };
+                    return Ok(response);
                 }
                 return Unauthorized();
             }
             return BadRequest(ModelState);
+        }
 
     }
 }
