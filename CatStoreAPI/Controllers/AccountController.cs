@@ -77,5 +77,12 @@ namespace CatStoreAPI.Controllers
             return BadRequest(ModelState);
         }
 
+        [HttpDelete("{Id}")]
+        public async Task<IActionResult> DeleteAccount(int Id)
+        {
+            var user = 
+            userManager.DeleteAsync();
+        }
+
     }
 }

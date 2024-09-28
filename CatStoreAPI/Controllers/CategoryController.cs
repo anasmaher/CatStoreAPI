@@ -5,6 +5,7 @@ using CatStoreAPI.DTO.CategoryDTOs;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -28,6 +29,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<APIResponse>> GetAllCategories()
         {
             var categories = await unitOfWork.Categories.GetAllAsync();

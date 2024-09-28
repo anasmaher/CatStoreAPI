@@ -1,16 +1,15 @@
 using CatStoreAPI.Configuration;
 using Core.Interfaces;
-using Infrastructure.Repositories;
-using Infrastructure.DataBase;
-using Microsoft.EntityFrameworkCore;
-using Infrastructure.Services;
-using CatStoreAPI.Auth;
 using Core.Models;
-using Microsoft.AspNetCore.Identity;
+using Core.Services;
+using Infrastructure.DataBase;
+using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Core.Services;
 
 namespace CatStoreAPI
 {
@@ -19,6 +18,9 @@ namespace CatStoreAPI
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Get the JWT configuration from appsettings.json
+            var jwtSettings = builder.Configuration.GetSection("JWT");
 
             // Add services to the container.
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -34,7 +36,8 @@ namespace CatStoreAPI
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddIdentity<AppUser, IdentityRole>()
-                .AddEntityFrameworkStores<AppDbContext>();
+                .AddEntityFrameworkStores<AppDbContext>()
+                .AddDefaultTokenProviders();
 
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling =
@@ -46,7 +49,30 @@ namespace CatStoreAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddAuthorization();
-
+            builder.Services.AddAuthentication
+            (
+                options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                }    
+            ).AddJwtBearer
+            (
+                options => 
+                {
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters()
+                    {
+                        ValidateAudience = true,
+                        ValidateIssuer = true,
+                        ValidIssuer = jwtSettings["JWT:Issuer"],
+                        ValidAudience = jwtSettings["JWT:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+                    };
+                }
+            
+            );
 
             var app = builder.Build();
 
