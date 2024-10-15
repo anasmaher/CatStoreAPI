@@ -9,6 +9,6 @@ namespace Core.Interfaces
 
         public Task<IdentityResult> CreateUserAsync(string firstName, string lastName, string email, string password);
 
-        public Task DeleteUser();
+        public Task DeleteUserAsync(string email, string passsword);
     }
 }

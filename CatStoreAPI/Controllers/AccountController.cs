@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using NuGet.Common;
 using NuGet.Protocol;
 using System.Net;
 
@@ -77,12 +78,25 @@ namespace CatStoreAPI.Controllers
             return BadRequest(ModelState);
         }
 
-        [HttpDelete("{Id}")]
-        public async Task<IActionResult> DeleteAccount(int Id)
+        [HttpDelete]
+        public async Task<IActionResult> DeleteAccount(AuthLoginDTO userDetails)
         {
-            var user = 
-            userManager.DeleteAsync();
-        }
+            try
+            {
+                await userService.DeleteUserAsync(userDetails.Email, userDetails.Password);
 
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                response.Result = userDetails.Email;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Result = ex.Message;
+                return NotFound(response);
+            }
+        }
     }
 }

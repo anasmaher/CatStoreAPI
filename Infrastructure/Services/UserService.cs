@@ -26,6 +26,16 @@ namespace Core.Services
             return res;
         }
 
+        public async Task DeleteUserAsync(string email, string password)
+        {
+            var user = await userManager.FindByEmailAsync(email);
+
+            if (user == null || !await userManager.CheckPasswordAsync(user, password))
+                throw new Exception("User not found!");
+            
+            await userManager.DeleteAsync(user);
+        }
+
         public async Task<AppUser> FindUserAsync(string email, string password)
         {
             var user = await userManager.FindByEmailAsync(email);
@@ -36,6 +46,6 @@ namespace Core.Services
             return user;
         }
 
-        public 
+         
     }
 }
