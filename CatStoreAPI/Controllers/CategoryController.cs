@@ -29,7 +29,6 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize]
         public async Task<ActionResult<APIResponse>> GetAllCategories()
         {
             var categories = await unitOfWork.Categories.GetAllAsync();

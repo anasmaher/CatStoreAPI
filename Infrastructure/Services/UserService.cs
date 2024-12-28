@@ -1,6 +1,8 @@
-﻿using Core.Interfaces;
+﻿using Azure.Core;
+using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Policy;
 
 namespace Core.Services
 {
@@ -30,7 +32,7 @@ namespace Core.Services
         {
             var user = await userManager.FindByEmailAsync(email);
 
-            if (user == null || !await userManager.CheckPasswordAsync(user, password))
+            if (user is null || !await userManager.CheckPasswordAsync(user, password))
                 throw new Exception("User not found!");
             
             await userManager.DeleteAsync(user);
@@ -40,12 +42,10 @@ namespace Core.Services
         {
             var user = await userManager.FindByEmailAsync(email);
 
-            if (user == null || !await userManager.CheckPasswordAsync(user, password))
+            if (user is null || !await userManager.CheckPasswordAsync(user, password))
                 return null;
             
             return user;
         }
-
-         
     }
 }

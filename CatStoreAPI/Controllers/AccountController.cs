@@ -18,13 +18,15 @@ namespace CatStoreAPI.Controllers
         private readonly UserManager<AppUser> userManager;
         private readonly IUserService userService;
         private readonly ITokenService tokenService;
+        private readonly IEmailService emailService;
         private readonly APIResponse response;
 
-        public AccountController(UserManager<AppUser> userManager, IUserService userService, ITokenService tokenService)
+        public AccountController(UserManager<AppUser> userManager, IUserService userService, ITokenService tokenService, IEmailService emailService)
         {
             this.userManager = userManager;
             this.userService = userService;
             this.tokenService = tokenService;
+            this.emailService = emailService;
             response = new APIResponse();
         }
 
@@ -35,7 +37,6 @@ namespace CatStoreAPI.Controllers
             {
                 var res = await userService.CreateUserAsync(registerDTO.firstName, registerDTO.lastName, registerDTO.email, registerDTO.password);
 
-                response.Result = res.Succeeded;
                 if (res.Succeeded)
                 {
                     response.IsSuccess = true;
@@ -94,9 +95,71 @@ namespace CatStoreAPI.Controllers
             {
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.NotFound;
-                response.Result = ex.Message;
+                response.Errors.Add(ex.Message);
                 return NotFound(response);
             }
+        }
+
+        [HttpPost("ForgotPassword")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDTO forgotPasswordDTO)
+        {
+            if(!ModelState.IsValid) return BadRequest(ModelState);
+
+            var user = await userManager.FindByEmailAsync(forgotPasswordDTO.Email);
+
+            if(user is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found");
+                return NotFound(response);
+            }
+
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            var resetUrl = Url.Action("ResetPassword", "Account", new { token, email = forgotPasswordDTO.Email }, Request.Scheme);
+
+            await emailService.SendEmailAsync(forgotPasswordDTO.Email, "Password reset", $"Reset your password using this link: {resetUrl}");
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            return Ok(response);
+        }
+
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDTO resetPasswordDTO)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var user = await userManager.FindByEmailAsync(resetPasswordDTO.Email);
+            if (user is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found");
+                return NotFound(response);
+            }
+
+            // Use the token to reset the password
+            var result = await userManager.ResetPasswordAsync(user, resetPasswordDTO.Token, resetPasswordDTO.NewPassword);
+
+            if (result.Succeeded)
+            {
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                return Ok(response);
+            }
+
+            // If the token is invalid or expired, return an error
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = new List<string>();
+
+            foreach(var err in result.Errors)
+            {
+                response.Errors.Add($"{err}");
+            }
+            return BadRequest(response);
         }
     }
 }

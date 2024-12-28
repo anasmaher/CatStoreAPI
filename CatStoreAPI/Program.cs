@@ -38,6 +38,7 @@ namespace CatStoreAPI
             builder.Services.AddIdentity<AppUser, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling =
@@ -73,6 +74,10 @@ namespace CatStoreAPI
                 }
             
             );
+            builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+            {
+                options.TokenLifespan = TimeSpan.FromHours(3);  // Token is valid for 3 hours
+            });
 
             var app = builder.Build();
 
