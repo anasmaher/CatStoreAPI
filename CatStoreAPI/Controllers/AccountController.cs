@@ -1,13 +1,12 @@
 ﻿using CatStoreAPI.DTO.AuthDTOs;
 using Core.Interfaces;
 using Core.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using NuGet.Common;
-using NuGet.Protocol;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Security.Claims;
 
 namespace CatStoreAPI.Controllers
 {
@@ -47,15 +46,11 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.Errors = new List<string>();
-                foreach (var err in res.Errors)
-                {
-                    response.Errors.Add(err.Description);
-                }                
+                foreach (var err in res.Errors) response.Errors.Add(err.Description);             
                 
                 return BadRequest(response);
             }
-            else 
-                return BadRequest(ModelState);
+            else return BadRequest(ModelState);
         }
 
         [HttpPost("Login")]
@@ -74,7 +69,13 @@ namespace CatStoreAPI.Controllers
                     response.Result = new { token };
                     return Ok(response);
                 }
-                return Unauthorized();
+                else
+                {
+                    response.IsSuccess = false;
+                    response.StatusCode = HttpStatusCode.NotFound;
+                    response.Errors.Add("User not found");
+                    return NotFound(response);
+                }
             }
             return BadRequest(ModelState);
         }
@@ -119,11 +120,22 @@ namespace CatStoreAPI.Controllers
 
             var resetUrl = Url.Action("ResetPassword", "Account", new { token, email = forgotPasswordDTO.Email }, Request.Scheme);
 
-            await emailService.SendEmailAsync(forgotPasswordDTO.Email, "Password reset", $"Reset your password using this link: {resetUrl}");
+            try
+            {
+                await emailService.SendEmailAsync(forgotPasswordDTO.Email, "Password reset", $"Reset your password using this link: {resetUrl}");
 
-            response.IsSuccess = true;
-            response.StatusCode = HttpStatusCode.OK;
-            return Ok(response);
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add(ex.Message);
+                return BadRequest(response);
+            }
+            
         }
 
         [HttpPost("ResetPassword")]
@@ -155,11 +167,43 @@ namespace CatStoreAPI.Controllers
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = new List<string>();
 
-            foreach(var err in result.Errors)
-            {
-                response.Errors.Add($"{err}");
-            }
+            foreach(var err in result.Errors) response.Errors.Add($"{err}");
+            
             return BadRequest(response);
+        }
+
+        [Authorize]
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDTO changePasswordDTO)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var user = await userManager.GetUserAsync(User);
+
+            if (user is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found");
+                return NotFound(response);
+            }
+
+            var res = await userManager.ChangePasswordAsync(user, changePasswordDTO.CurrentPassword, changePasswordDTO.NewPassword);
+
+            if (!res.Succeeded)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = new List<string>();
+                foreach (var err in res.Errors) response.Errors.Add($"{err}");
+                return BadRequest(response);
+            }
+            else
+            {
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                return Ok(response);
+            }
         }
     }
 }
