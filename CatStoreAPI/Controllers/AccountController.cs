@@ -1,6 +1,8 @@
 ﻿using CatStoreAPI.DTO.AuthDTOs;
 using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +12,7 @@ using System.Security.Claims;
 
 namespace CatStoreAPI.Controllers
 {
+    [AllowAnonymous]
     [Route("api/Account")]
     [ApiController]
     public class AccountController : ControllerBase
@@ -29,6 +32,7 @@ namespace CatStoreAPI.Controllers
             response = new APIResponse();
         }
 
+        [AllowAnonymous]
         [HttpPost("Register")]
         public async Task<IActionResult> Register(AuthRegisterDTO registerDTO)
         {
@@ -54,6 +58,7 @@ namespace CatStoreAPI.Controllers
             return BadRequest(ModelState);
         }
 
+        [AllowAnonymous]
         [HttpPost("Login")]
         public async Task<IActionResult> Login(AuthLoginDTO loginDTO)
         {
@@ -98,6 +103,97 @@ namespace CatStoreAPI.Controllers
                 response.Errors.Add("User is not authenticated");
                 return NotFound(response);
             }
+        }
+
+        [AllowAnonymous]
+        [HttpGet("signin-google")]
+        public IActionResult LoginGoogle()
+        {
+            var properties = new AuthenticationProperties { RedirectUri = Url.Action("GoogleResponse") };
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("GoogleResponse")]
+        public async Task<IActionResult> GoogleResponse()
+        {
+            var authenticateResult = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+
+            if (!authenticateResult.Succeeded)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add("Google authentication failed.");
+                return BadRequest(response);
+            }
+
+            // Extract user information from the claims
+            var claims = authenticateResult.Principal.Identities.FirstOrDefault()
+                                 ?.Claims.Select(claim => new
+                                 {
+                                     claim.Type,
+                                     claim.Value
+                                 });
+
+            var emailClaim = authenticateResult.Principal.FindFirst(ClaimTypes.Email);
+            var nameClaim = authenticateResult.Principal.FindFirst(ClaimTypes.Name);
+            var givenNameClaim = authenticateResult.Principal.FindFirst(ClaimTypes.GivenName);
+            var surnameClaim = authenticateResult.Principal.FindFirst(ClaimTypes.Surname);
+
+            var email = emailClaim.Value;
+            var firstName = givenNameClaim?.Value;
+            var lastName = surnameClaim?.Value;
+            var fullName = nameClaim?.Value;
+
+            if (emailClaim is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add("Email claim not received from Google.");
+                return BadRequest(response);
+            }
+
+            var user = await userManager.FindByEmailAsync(emailClaim.Value);
+
+            if (user is null)
+            {
+                user = new AppUser
+                {
+                    Email = email,
+                    UserName = email,
+                    EmailConfirmed = true,
+                    FirstName = firstName,
+                    LastName = lastName
+                };
+
+                if (!string.IsNullOrEmpty(fullName))
+                {
+                    var names = fullName.Split(' ');
+                    firstName = names.FirstOrDefault();
+                    lastName = names.Skip(1).FirstOrDefault();
+                    user.FirstName = firstName;
+                    user.LastName = lastName;
+                }
+
+                if (string.IsNullOrEmpty(firstName)) user.FirstName = "First";
+                if (string.IsNullOrEmpty(lastName)) user.LastName = "Last";
+                
+                var res = await userManager.CreateAsync(user);
+
+                if (!res.Succeeded)
+                {
+                    response.Result = false;
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    response.Errors.Add("Could not create user.");
+                }
+            }
+
+            var token = await tokenService.GenerateTokenAsync(user);
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            response.Result = new {token};
+            return Ok(response);
         }
 
         [HttpPost("ForgotPassword")]

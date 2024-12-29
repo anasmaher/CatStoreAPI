@@ -5,6 +5,8 @@ using Core.Services;
 using Infrastructure.DataBase;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -92,7 +94,18 @@ namespace CatStoreAPI
                     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                }    
+                    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+                }
+            ).AddCookie()
+            .AddGoogle(options =>
+            {
+                options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+
+                options.Scope.Add("profile");
+                options.SaveTokens = true;
+                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            }
             ).AddJwtBearer
             (
                 options => 
@@ -150,7 +163,6 @@ namespace CatStoreAPI
                         }
                     };
                 }
-                
             );
 
             builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
