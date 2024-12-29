@@ -52,5 +52,6 @@ namespace Infrastructure.DataBase
         public DbSet<ShoppingCartItem> Items { get; set; }
         public DbSet<WishList> WishLists { get; set; }
         public DbSet<AppUser> Users { get; set; }
+        public DbSet<Token> Tokens { get; set; }
     }
 }

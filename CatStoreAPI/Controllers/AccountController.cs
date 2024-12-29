@@ -50,7 +50,8 @@ namespace CatStoreAPI.Controllers
                 
                 return BadRequest(response);
             }
-            else return BadRequest(ModelState);
+            
+            return BadRequest(ModelState);
         }
 
         [HttpPost("Login")]
@@ -69,13 +70,11 @@ namespace CatStoreAPI.Controllers
                     response.Result = new { token };
                     return Ok(response);
                 }
-                else
-                {
-                    response.IsSuccess = false;
-                    response.StatusCode = HttpStatusCode.NotFound;
-                    response.Errors.Add("User not found");
-                    return NotFound(response);
-                }
+                
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found");
+                return NotFound(response);
             }
             return BadRequest(ModelState);
         }
@@ -95,8 +94,8 @@ namespace CatStoreAPI.Controllers
             catch (Exception ex)
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.NotFound;
-                response.Errors.Add(ex.Message);
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not authenticated");
                 return NotFound(response);
             }
         }
@@ -111,8 +110,8 @@ namespace CatStoreAPI.Controllers
             if(user is null)
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.NotFound;
-                response.Errors.Add("User not found");
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not authenticated");
                 return NotFound(response);
             }
 
@@ -147,8 +146,8 @@ namespace CatStoreAPI.Controllers
             if (user is null)
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.NotFound;
-                response.Errors.Add("User not found");
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not authenticated");
                 return NotFound(response);
             }
 
@@ -157,6 +156,9 @@ namespace CatStoreAPI.Controllers
 
             if (result.Succeeded)
             {
+                user.TokenVersion++;
+                await userManager.UpdateAsync(user);
+
                 response.IsSuccess = true;
                 response.StatusCode = HttpStatusCode.OK;
                 return Ok(response);
@@ -183,8 +185,8 @@ namespace CatStoreAPI.Controllers
             if (user is null)
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.NotFound;
-                response.Errors.Add("User not found");
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not authenticated");
                 return NotFound(response);
             }
 
@@ -198,12 +200,13 @@ namespace CatStoreAPI.Controllers
                 foreach (var err in res.Errors) response.Errors.Add($"{err}");
                 return BadRequest(response);
             }
-            else
-            {
-                response.IsSuccess = true;
-                response.StatusCode = HttpStatusCode.OK;
-                return Ok(response);
-            }
+           
+            user.TokenVersion++;
+            await userManager.UpdateAsync(user);
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            return Ok(response);
         }
 
         [HttpPost("LogOutAll")]
@@ -214,8 +217,8 @@ namespace CatStoreAPI.Controllers
             if (user is null)
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.NotFound;
-                response.Errors.Add("User not found");
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not authenticated");
                 return NotFound(response);
             }
 
@@ -229,14 +232,33 @@ namespace CatStoreAPI.Controllers
                 response.StatusCode = HttpStatusCode.OK;
                 return Ok(response);
             }
-            else
+            
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = new List<string>();
+            foreach (var err in res.Errors) response.Errors.Add($"{err}");
+            return BadRequest(response);
+            
+        }
+
+        [HttpPost("LogOutSingle")]
+        public async Task<IActionResult> LogOutSingle()
+        {
+            var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+
+            if (string.IsNullOrEmpty(jti))
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.BadRequest;
-                response.Errors = new List<string>();
-                foreach (var err in res.Errors) response.Errors.Add($"{err}");
-                return BadRequest(response);
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not authenticated");
+                return NotFound(response);
             }
+
+            await tokenService.RevokeTokenAsync(jti);
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            return Ok(response);
         }
     }
 }

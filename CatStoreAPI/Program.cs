@@ -112,6 +112,7 @@ namespace CatStoreAPI
                     {
                         OnTokenValidated = async context =>
                         {
+                            // all devices log out
                             var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
                             var userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
                             var tokenVersionClaim = context.Principal.FindFirst("TokenVersion")?.Value;
@@ -126,6 +127,23 @@ namespace CatStoreAPI
                             if (user == null || user.TokenVersion != tokenVersion)
                             {
                                 context.Fail("Token is no longer valid.");
+                            }
+
+                            // single log out
+                            var tokenService = context.HttpContext.RequestServices.GetRequiredService<ITokenService>();
+                            var jti = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
+
+                            if (string.IsNullOrEmpty(jti))
+                            {
+                                context.Fail("Invalid token.");
+                                return;
+                            }
+
+                            var isRevoked = await tokenService.IsTokenRevokedAsync(jti);
+                            if (isRevoked)
+                            {
+                                context.Fail("Token has been revoked.");
+                                return;
                             }
                         }
                     };
