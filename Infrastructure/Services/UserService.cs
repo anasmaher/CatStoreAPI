@@ -1,8 +1,6 @@
-﻿using Azure.Core;
-using Core.Interfaces;
+﻿using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Identity;
-using System.Security.Policy;
 
 namespace Core.Services
 {
@@ -24,6 +22,8 @@ namespace Core.Services
             user.FirstName = firstName;
             user.LastName = lastName;
             IdentityResult res = await userManager.CreateAsync(user, password);
+
+            await userManager.AddToRoleAsync(user, "User");
 
             return res;
         }

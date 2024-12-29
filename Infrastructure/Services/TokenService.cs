@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Infrastructure.Services
@@ -24,7 +25,7 @@ namespace Infrastructure.Services
             this._dbContext = _dbContext;
         }
 
-        public async Task<string> GenerateTokenAsync(AppUser user)
+        public async Task<AuthenticationResult> GenerateTokenAsync(AppUser user, bool generateRefreshToken = true)
         {
             var tokenId = Guid.NewGuid().ToString();
 
@@ -55,13 +56,61 @@ namespace Infrastructure.Services
 
             var token = new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
 
+            var result = new AuthenticationResult
+            {
+                Token = token
+            };
+
+            if (generateRefreshToken)
+            {
+                var refreshToken = GenerateRefreshToken();
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(int.Parse(config["JWT:DurationInMinutes"]));
+
+                await userManager.UpdateAsync(user);
+
+                result.RefreshToken = refreshToken;
+            }
+
             await StoreTokenAsync(user.Id, tokenId, DateTime.UtcNow.AddMinutes(int.Parse(config["JWT:DurationInMinutes"])));
-            return token;
+
+            return result;
+        }
+
+        public string GenerateRefreshToken()
+        {
+            var randomBytes = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomBytes);
+            return Convert.ToBase64String(randomBytes);
+        }
+
+        public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = true,
+                ValidAudience = config["JWT:Audience"],
+                ValidateIssuer = true,
+                ValidIssuer = config["JWT:Issuer"],
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JWT:Key"])),
+                ValidateLifetime = false // Ignore token expiration
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            var jwtSecurityToken = securityToken as JwtSecurityToken;
+
+            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                throw new SecurityTokenException("Invalid token");
+
+            return principal;
         }
 
         public async Task StoreTokenAsync(string userId, string tokenId, DateTime expirationTime)
         {
-            var token = new Token
+            var token = new TokenModel
             {
                 TokenId = tokenId,
                 UserId = userId,

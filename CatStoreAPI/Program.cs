@@ -18,7 +18,7 @@ namespace CatStoreAPI
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -102,10 +102,12 @@ namespace CatStoreAPI
                     {
                         ValidateAudience = true,
                         ValidateIssuer = true,
+                        ValidateLifetime = true,
                         ValidIssuer = jwtSettings["Issuer"],
                         ValidAudience = jwtSettings["Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"])),
-                        NameClaimType = JwtRegisteredClaimNames.Sub
+                        NameClaimType = JwtRegisteredClaimNames.Sub,
+                        RoleClaimType = ClaimTypes.Role
                     };
 
                     options.Events = new JwtBearerEvents
@@ -156,9 +158,14 @@ namespace CatStoreAPI
                 options.TokenLifespan = TimeSpan.FromHours(3);  // Token is valid for 3 hours
             });
 
-            var app = builder.Build();
 
             // Configure the HTTP request pipeline.
+            var app = builder.Build();
+            using (var scope = app.Services.CreateScope())
+            {
+                await SeedRolesAsync(scope.ServiceProvider);
+            };
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -175,6 +182,20 @@ namespace CatStoreAPI
             app.MapControllers();
 
             app.Run();
+        }
+
+        public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
+        {
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var roles = new[] { "Admin", "User" };
+
+            foreach (var role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
         }
     }
 }

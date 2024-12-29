@@ -13,5 +13,9 @@ namespace Core.Models
         public virtual WishList WishList { get; set; }
 
         public int TokenVersion { get; set; } = 1;
+
+        public string? RefreshToken { get; set; }
+
+        public DateTime RefreshTokenExpiryTime { get; set; }
     }
 }

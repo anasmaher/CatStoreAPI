@@ -63,11 +63,11 @@ namespace CatStoreAPI.Controllers
 
                 if (user is not null)
                 {
-                    var token = await tokenService.GenerateTokenAsync(user);
+                    var tokens = await tokenService.GenerateTokenAsync(user);
 
                     response.IsSuccess = true;
                     response.StatusCode = HttpStatusCode.OK;
-                    response.Result = new { token };
+                    response.Result = new { tokens };
                     return Ok(response);
                 }
                 
@@ -134,7 +134,6 @@ namespace CatStoreAPI.Controllers
                 response.Errors.Add(ex.Message);
                 return BadRequest(response);
             }
-            
         }
 
         [HttpPost("ResetPassword")]
@@ -174,7 +173,7 @@ namespace CatStoreAPI.Controllers
             return BadRequest(response);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpPost("ChangePassword")]
         public async Task<IActionResult> ChangePassword(ChangePasswordDTO changePasswordDTO)
         {
@@ -241,23 +240,90 @@ namespace CatStoreAPI.Controllers
             
         }
 
+        [Authorize]
         [HttpPost("LogOutSingle")]
         public async Task<IActionResult> LogOutSingle()
         {
-            var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
-
-            if (string.IsNullOrEmpty(jti))
+            // Check if User is authenticated
+            if (!User.Identity.IsAuthenticated)
             {
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.Unauthorized;
                 response.Errors.Add("User is not authenticated");
-                return NotFound(response);
+                return Unauthorized(response);
+            }
+
+            var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+            if (string.IsNullOrEmpty(jti))
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("Token ID (jti) is missing");
+                return Unauthorized(response);
             }
 
             await tokenService.RevokeTokenAsync(jti);
 
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User ID is missing in the token");
+                return Unauthorized(response);
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User not found");
+                return Unauthorized(response);
+            }
+
+            // Revoke the refresh token
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow;
+            await userManager.UpdateAsync(user);
+
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;
+            return Ok(response);
+        }
+
+        [HttpPost("RefreshToken")]
+        public async Task<IActionResult> RefreshToken(RefreshTokenDTO refreshTokenDTO)
+        {
+            if (refreshTokenDTO is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add("Invalid request");
+                return BadRequest(response);
+            }
+
+            string accessToken = refreshTokenDTO.Token;
+            string refreshToken = refreshTokenDTO.RefreshToken;
+
+            var principal = tokenService.GetPrincipalFromExpiredToken(accessToken);
+            var userId = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            var user = await userManager.FindByIdAsync(userId);
+
+            if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("Invalid refresh token.");
+                return Unauthorized(response);
+            }
+
+            var tokens = await tokenService.GenerateTokenAsync(user, false);
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            response.Result = tokens;
             return Ok(response);
         }
     }

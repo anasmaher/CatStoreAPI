@@ -1,6 +1,6 @@
 ﻿namespace Core.Models
 {
-    public class Token
+    public class TokenModel
     {
         public int Id { get; set; }
         public string TokenId { get; set; } // jti
