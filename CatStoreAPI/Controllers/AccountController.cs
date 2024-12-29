@@ -205,5 +205,38 @@ namespace CatStoreAPI.Controllers
                 return Ok(response);
             }
         }
+
+        [HttpPost("LogOutAll")]
+        public async Task<IActionResult> LogOutAll()
+        {
+            var user = await userManager.GetUserAsync(User);
+
+            if (user is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found");
+                return NotFound(response);
+            }
+
+            user.TokenVersion++; // invalidate tokenVersion
+
+            var res = await userManager.UpdateAsync(user);
+
+            if (res.Succeeded)
+            {
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                return Ok(response);
+            }
+            else
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = new List<string>();
+                foreach (var err in res.Errors) response.Errors.Add($"{err}");
+                return BadRequest(response);
+            }
+        }
     }
 }

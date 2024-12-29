@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 
 namespace CatStoreAPI
@@ -80,6 +82,8 @@ namespace CatStoreAPI
                 });
             });
 
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // Clear default mappings
+
             builder.Services.AddAuthorization();
             builder.Services.AddAuthentication
             (
@@ -100,11 +104,35 @@ namespace CatStoreAPI
                         ValidateIssuer = true,
                         ValidIssuer = jwtSettings["Issuer"],
                         ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"])),
+                        NameClaimType = JwtRegisteredClaimNames.Sub
+                    };
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
+                            var userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                            var tokenVersionClaim = context.Principal.FindFirst("TokenVersion")?.Value;
+
+                            if (!int.TryParse(tokenVersionClaim, out var tokenVersion))
+                            {
+                                context.Fail("Invalid token version.");
+                                return;
+                            }
+
+                            var user = await userManager.FindByIdAsync(userId);
+                            if (user == null || user.TokenVersion != tokenVersion)
+                            {
+                                context.Fail("Token is no longer valid.");
+                            }
+                        }
                     };
                 }
-            
+                
             );
+
             builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
             {
                 options.TokenLifespan = TimeSpan.FromHours(3);  // Token is valid for 3 hours

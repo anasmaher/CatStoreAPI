@@ -11,5 +11,7 @@ namespace Core.Models
         public virtual ShoppingCart ShoppingCart { get; set; }
 
         public virtual WishList WishList { get; set; }
+
+        public int TokenVersion { get; set; } = 1;
     }
 }
