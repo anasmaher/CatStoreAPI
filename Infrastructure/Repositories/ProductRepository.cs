@@ -1,6 +1,7 @@
 ﻿using Core.Interfaces;
 using Core.Models;
 using Infrastructure.DataBase;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories
 {
@@ -15,9 +16,42 @@ namespace Infrastructure.Repositories
             categoryRepo = _categoryRepo;
         }
 
+        public async Task<List<Product>> GetAllAsync(string searchName = null, string searchCategory = null, string searchBrand = null, string sortBy = null, bool isSortAscending = true, int page = 1, int pageSize = 10)
+        {
+            var query = dbContext.Products.AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchName))
+                query = query.Where(p => p.Name.Contains(searchName));
+
+            if (!string.IsNullOrEmpty(sortBy))
+            {
+                if (isSortAscending)
+                    query = query.OrderBy(p => EF.Property<object>(p, sortBy));
+                else
+                    query = query.OrderByDescending(p => EF.Property<object>(p, sortBy));
+            }
+
+            if (!string.IsNullOrEmpty(searchCategory))
+            {
+                query = query.Where(p => p.Category.Name.Contains(searchCategory));
+            }
+
+            if (!string.IsNullOrEmpty(searchBrand))
+            {
+                query = query.Where(p => p.Brand.Contains(searchBrand));
+            }
+
+            return await query
+                .Include(p => p.Category)
+                .Include(p => p.Reviews)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Product>> SetOfferOnBrandProducts(string BrandName, int Discount)
         {
-            var products = await GetAllAsync(x => x.Brand == BrandName);
+            var products = await GetAllAsync(searchBrand: BrandName);
 
             foreach (var product in products)
             {
@@ -29,7 +63,7 @@ namespace Infrastructure.Repositories
 
         public async Task<IEnumerable<Product>> SetOfferOnCategoryProducts(string CategoryName, int Discount)
         {
-            var products = await GetAllAsync(x => x.Category.Name == CategoryName);
+            var products = await GetAllAsync(searchCategory: CategoryName);
 
             foreach (var product in products)
             {
@@ -81,17 +115,14 @@ namespace Infrastructure.Repositories
                 UpdatedProduct.LifeStage = product.LifeStage;
                 UpdatedProduct.ProductCode = product.ProductCode;
                 UpdatedProduct.ImageUrl = product.ImageUrl;
-                var cat= await categoryRepo.GetSingleAsync(x => x.Name == categoryName);
+                var cat = await categoryRepo.GetSingleAsync(x => x.Name == categoryName);
                 UpdatedProduct.CategoryId = cat.Id;
 
                 dbContext.Update(UpdatedProduct);
 
                 return UpdatedProduct;
             }
-            else
-            {
-                throw new Exception("Product not found!");
-            }
+            throw new Exception("Product not found!");
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using CatStoreAPI.DTO.AuthDTOs;
+﻿using AutoMapper;
+using CatStoreAPI.DTO.AuthDTOs;
 using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Authentication;
@@ -21,19 +22,21 @@ namespace CatStoreAPI.Controllers
         private readonly IUserService userService;
         private readonly ITokenService tokenService;
         private readonly IEmailService emailService;
+        private readonly IMapper autoMapper;
         private readonly APIResponse response;
 
-        public AccountController(UserManager<AppUser> userManager, IUserService userService, ITokenService tokenService, IEmailService emailService)
+        public AccountController(UserManager<AppUser> userManager, IUserService userService, ITokenService tokenService, IEmailService emailService, IMapper autoMapper)
         {
             this.userManager = userManager;
             this.userService = userService;
             this.tokenService = tokenService;
             this.emailService = emailService;
+            this.autoMapper = autoMapper;
             response = new APIResponse();
         }
 
-        [AllowAnonymous]
         [HttpPost("Register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register(AuthRegisterDTO registerDTO)
         {
             if (ModelState.IsValid)
@@ -54,12 +57,18 @@ namespace CatStoreAPI.Controllers
                 
                 return BadRequest(response);
             }
-            
-            return BadRequest(ModelState);
+
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(response);
         }
 
-        [AllowAnonymous]
         [HttpPost("Login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(AuthLoginDTO loginDTO)
         {
             if (ModelState.IsValid)
@@ -81,10 +90,18 @@ namespace CatStoreAPI.Controllers
                 response.Errors.Add("User not found");
                 return NotFound(response);
             }
-            return BadRequest(ModelState);
+
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(response);
         }
 
         [HttpDelete]
+        [Authorize]
         public async Task<IActionResult> DeleteAccount(AuthLoginDTO userDetails)
         {
             try
@@ -105,16 +122,16 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpGet("signin-google")]
+        [AllowAnonymous]
         public IActionResult LoginGoogle()
         {
             var properties = new AuthenticationProperties { RedirectUri = Url.Action("GoogleResponse") };
             return Challenge(properties, GoogleDefaults.AuthenticationScheme);
         }
 
-        [AllowAnonymous]
         [HttpGet("GoogleResponse")]
+        [AllowAnonymous]
         public async Task<IActionResult> GoogleResponse()
         {
             var authenticateResult = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
@@ -197,6 +214,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("ForgotPassword")]
+        [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordDTO forgotPasswordDTO)
         {
             if(!ModelState.IsValid) return BadRequest(ModelState);
@@ -233,6 +251,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("ResetPassword")]
+        [AllowAnonymous]
         public async Task<IActionResult> ResetPassword(ResetPasswordDTO resetPasswordDTO)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -263,14 +282,12 @@ namespace CatStoreAPI.Controllers
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = new List<string>();
-
             foreach(var err in result.Errors) response.Errors.Add($"{err}");
-            
             return BadRequest(response);
         }
 
-        [Authorize(Roles = "Admin")]
         [HttpPost("ChangePassword")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ChangePassword(ChangePasswordDTO changePasswordDTO)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -305,6 +322,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("LogOutAll")]
+        [Authorize]
         public async Task<IActionResult> LogOutAll()
         {
             var user = await userManager.GetUserAsync(User);
@@ -336,8 +354,8 @@ namespace CatStoreAPI.Controllers
             
         }
 
-        [Authorize]
         [HttpPost("LogOutSingle")]
+        [Authorize]
         public async Task<IActionResult> LogOutSingle()
         {
             // Check if User is authenticated
@@ -421,6 +439,55 @@ namespace CatStoreAPI.Controllers
             response.StatusCode = HttpStatusCode.OK;
             response.Result = tokens;
             return Ok(response);
+        }
+
+        [HttpPost("EditInfo")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUserInfo(EditInfoDTO editInfoDTO)
+        {
+            if (!ModelState.IsValid)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(response);
+            }
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId is null)
+            {
+                response.IsSuccess= false;
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not Authenticated.");
+                return Unauthorized(response);
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found.");
+                return NotFound(response);
+            }
+
+            autoMapper.Map(editInfoDTO, user);
+
+            var result = await userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                return Ok(response);
+            }
+            
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            foreach (var error in result.Errors) response.Errors.Add(error.Description);
+            return BadRequest(response);
         }
     }
 }

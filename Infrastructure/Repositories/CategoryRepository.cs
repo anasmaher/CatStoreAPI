@@ -2,6 +2,7 @@
 using Core.Interfaces;
 using Infrastructure.DataBase;
 using Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories
 {
@@ -14,6 +15,13 @@ namespace Infrastructure.Repositories
         {
             dbContext = _dbContext;
             reorderCategoriesService = _reorderCategoriesService;
+        }
+
+        public async Task<List<Category>> GetAllAsync()
+        {
+            var categories = await dbContext.Categories.ToListAsync();
+
+            return categories;
         }
 
         public async Task<Category> UpdateAsync(int Id, Category category)

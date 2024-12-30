@@ -9,6 +9,8 @@ namespace Core.Interfaces
 {
     public interface ICategoryRepository : IRepository<Category>
     {
-        public Task<Category> UpdateAsync(int Id, Category obj);
+        Task<List<Category>> GetAllAsync();
+
+        Task<Category> UpdateAsync(int Id, Category obj);
     }
 }

@@ -15,7 +15,7 @@ namespace Core.Models
 
         [MaxLength(1000)]
         [DataType(DataType.MultilineText)]
-        public string? Description { get; set; }
+        public string Description { get; set; }
 
         public decimal Price { get; set; } = 0;
 
@@ -27,25 +27,25 @@ namespace Core.Models
             }
         }
 
+        public int StockAmount { get; set; }
+
         public decimal Discount { get; set; } = 0;
 
         [MaxLength(100)]
-        public string? Brand { get; set; }
+        public string Brand { get; set; }
 
         [MaxLength(100)]
-        public string? LifeStage { get; set; }
+        public string LifeStage { get; set; }
 
         [MaxLength(500)]
         public string ProductCode { get; set; }
 
         [MaxLength(500)]
-        public string? ImageUrl { get; set; }
+        public string ImageUrl { get; set; }
 
         [ForeignKey(nameof(CategoryId))]
         public int CategoryId { get; set; }
 
-        [JsonIgnore]
-        [IgnoreDataMember]
         public virtual Category Category { get; set; }
 
         [JsonIgnore]
@@ -55,5 +55,20 @@ namespace Core.Models
         [JsonIgnore]
         [IgnoreDataMember]
         public virtual List<WishList> WhishLists { get; set; }
+
+        public virtual List<Review> Reviews { get; set; }
+
+        [NotMapped]
+        public double AverageRating
+        {
+            get
+            {
+                if (Reviews is not null && Reviews.Any())
+                {
+                    return Reviews.Average(r => r.Rating);
+                }
+                return 0;
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@
 using Core.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace Infrastructure.DataBase
 {
@@ -44,6 +45,19 @@ namespace Infrastructure.DataBase
                 .HasOne(u => u.user)
                 .WithOne(s => s.WishList)
                 .HasForeignKey<WishList>(x => x.userId);
+
+            builder.Entity<Product>()
+            .HasMany(p => p.Reviews)
+            .WithOne(r => r.Product)
+            .HasForeignKey(r => r.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+            // User-Review relationship
+            builder.Entity<AppUser>()
+                .HasMany(u => u.Reviews)
+                .WithOne(r => r.User)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         public DbSet<Category> Categories { get; set; }
@@ -53,5 +67,6 @@ namespace Infrastructure.DataBase
         public DbSet<WishList> WishLists { get; set; }
         public DbSet<AppUser> Users { get; set; }
         public DbSet<TokenModel> Tokens { get; set; }
+        public DbSet<Review> Reviews { get; set; }
     }
 }

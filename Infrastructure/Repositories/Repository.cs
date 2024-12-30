@@ -1,4 +1,5 @@
 ﻿using Core.Interfaces;
+using Core.Models;
 using Infrastructure.DataBase;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -21,17 +22,6 @@ namespace Infrastructure.Repositories
             await dbSet.AddAsync(Entity);
 
             return Entity;
-        }
-
-        public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> filter = null)
-        {
-            IQueryable<T> query = dbSet;
-
-            if (filter is not null)
-                query = query.Where(filter);
-            
-            return await query.ToListAsync();
-
         }
 
         public async Task<T> GetSingleAsync(Expression<Func<T, bool>> filter)

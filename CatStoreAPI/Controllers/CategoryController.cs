@@ -1,12 +1,11 @@
 ﻿using AutoMapper;
-using Azure;
 using CatStoreAPI.Core.Models;
 using CatStoreAPI.DTO.CategoryDTOs;
 using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
 
 namespace CatStoreAPI.Controllers
@@ -18,17 +17,20 @@ namespace CatStoreAPI.Controllers
         private readonly IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
         private readonly IReorderCategoriesService reorderCategoriesService;
+        private readonly IOutputCacheStore outputCacheStore;
         private readonly APIResponse response;
 
-        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, IReorderCategoriesService _reorderCategoriesService)
+        public CategoryController(IUnitOfWork _unitOfWork, IMapper _mapper, IReorderCategoriesService _reorderCategoriesService, IOutputCacheStore outputCacheStore)
         {
             unitOfWork = _unitOfWork;
             mapper = _mapper;
             reorderCategoriesService = _reorderCategoriesService;
+            this.outputCacheStore = outputCacheStore;
             this.response = new APIResponse();
         }
 
         [HttpGet]
+        [OutputCache(Duration = 60, Tags = ["Categories"])]
         public async Task<ActionResult<APIResponse>> GetAllCategories()
         {
             var categories = await unitOfWork.Categories.GetAllAsync();
@@ -41,6 +43,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpGet("{Id}", Name = "GetCategoryById")]
+        [OutputCache(Duration = 120, VaryByRouteValueNames = ["Id"], Tags = ["Category"])]
         public async Task<ActionResult<APIResponse>> GetCategoryById(int Id)
         {
             try
@@ -62,6 +65,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> CreateCategory(CategoryCreatDTO categoryDTO)
         {
             // Check if the Name or the display order already exists 
@@ -82,24 +86,37 @@ namespace CatStoreAPI.Controllers
 
                 await unitOfWork.SaveChangesAsync();
 
+                await outputCacheStore.EvictByTagAsync("Categories", HttpContext.RequestAborted);
+
                 response.Result = createdCategory;
                 response.StatusCode = HttpStatusCode.Created;
                 response.IsSuccess = true;
                 return Ok(response);
             }
-            return BadRequest(ModelState);
-
+            
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(response);
         }
 
         [HttpPut("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> EditCategory(int Id, CategoryUpdateDTO categoryUpdateDTO)
         {
             // Check if the new Name or the new display order already exists 
-            var existsName = await unitOfWork.Categories
-                .GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
+            if(categoryUpdateDTO.Name is not null)
+            {
+                var existsName = await unitOfWork.Categories
+                    .GetSingleAsync(x => x.Name.ToLower() == categoryUpdateDTO.Name.ToLower());
 
-            if (existsName is not null && existsName.Id != Id)
-                ModelState.AddModelError("", "Category already exists!");
+                if (existsName is not null && existsName.Id != Id)
+                    ModelState.AddModelError("", "Category already exists!");
+            }
+            
 
             if (ModelState.IsValid)
             {
@@ -111,6 +128,9 @@ namespace CatStoreAPI.Controllers
                     editedCategory = await unitOfWork.Categories.UpdateAsync(Id, editedCategory);
 
                     await unitOfWork.SaveChangesAsync();
+
+                    await outputCacheStore.EvictByTagAsync("Categories", HttpContext.RequestAborted);
+                    await outputCacheStore.EvictByTagAsync($"Category-{Id}", HttpContext.RequestAborted);
 
                     response.Result = editedCategory;
                     response.StatusCode = HttpStatusCode.OK;
@@ -125,10 +145,18 @@ namespace CatStoreAPI.Controllers
                     return NotFound(response);
                 }
             }
-            return BadRequest(ModelState);
+
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(response);
         }
 
         [HttpDelete("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> RemoveCategory(int Id)
         {
             try
@@ -141,6 +169,9 @@ namespace CatStoreAPI.Controllers
                 await unitOfWork.Categories.RemoveAsync(x => x.Id == Id);
 
                 await unitOfWork.SaveChangesAsync();
+
+                await outputCacheStore.EvictByTagAsync("Categories", HttpContext.RequestAborted);
+                await outputCacheStore.EvictByTagAsync($"Category-{Id}", HttpContext.RequestAborted);
 
                 response.Result = removedCategory;
                 response.StatusCode = HttpStatusCode.OK;

@@ -13,21 +13,23 @@ namespace Infrastructure.Repositories
         public IProductRepository Products { get; private set; }
         public IShoppingCartRepository ShoppingCarts { get; private set; }
         public IWishListRepository WishLists { get; private set; }
+        public IReviewRepository Reviews { get; private set; }
 
-        public UnitOfWork(AppDbContext _dbContext, ICategoryRepository _categoryRepo, IProductRepository _productRepo, IShoppingCartRepository _shoppingCartRepo, IWishListRepository _wishlistRepo)
+        public UnitOfWork(AppDbContext _dbContext, ICategoryRepository _categoryRepo, IProductRepository _productRepo, IShoppingCartRepository _shoppingCartRepo, IWishListRepository _wishlistRepo, IReviewRepository _reviewRepo)
         {
             dbContext = _dbContext;
             Categories = _categoryRepo;
             Products = _productRepo;
             ShoppingCarts = _shoppingCartRepo;
             WishLists = _wishlistRepo;
+            Reviews = _reviewRepo;
         }
 
         public async Task<Product> AddProductWithNewCategoryAsync(Product product, string categoryName)
         {
             var existingCategory = await Categories.GetSingleAsync(c => c.Name == categoryName);
 
-            if (existingCategory == null)
+            if (existingCategory is null)
             {
                 var category = new Category { Name = categoryName };
                 await Categories.AddAsync(category);

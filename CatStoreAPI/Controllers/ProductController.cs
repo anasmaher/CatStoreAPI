@@ -3,6 +3,7 @@ using CatStoreAPI.Core.Models;
 using CatStoreAPI.DTO.ProductDTOs;
 using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -24,14 +25,34 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<APIResponse>> GetAllProducts()
+        public async Task<ActionResult<APIResponse>> GetAllProducts(
+            [FromQuery] string searchName = null,
+            [FromQuery] string searchCategory = null,
+            [FromQuery] string searchBrand = null,
+            [FromQuery] string sortBy = null,
+            [FromQuery] bool isSortAscending = true,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var products = await unitOfWork.Products.GetAllAsync();
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 10;
 
-            response.Result = products;
-            response.StatusCode = HttpStatusCode.OK;
-            response.IsSuccess = true;
-            return Ok(response);
+            try
+            {
+                var products = await unitOfWork.Products.GetAllAsync(searchName, searchCategory, searchBrand, sortBy, isSortAscending, page, pageSize);
+
+                response.Result = products;
+                response.StatusCode = HttpStatusCode.OK;
+                response.IsSuccess = true;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add(ex.Message);
+                return BadRequest(response);
+            }
         }
 
         [HttpGet("{Id}")]
@@ -56,6 +77,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> CreateProduct(ProductCreateDTO productDTO)
         {
             var existProductCode = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
@@ -80,6 +102,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPut("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> EditProduct(int Id, ProductUpdateDTO productDTO)
         {
             var existProductCode = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
@@ -113,6 +136,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpDelete("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> RemoveProduct(int Id)
         {
             try
@@ -137,6 +161,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("ProductOfferSingle/{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnSingleProduct(int Id, int Discount)
         {
             var productOffer = await unitOfWork.Products.SetOfferOnSingleProduct(Id, Discount);
@@ -150,6 +175,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("ProductOfferMultiple")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnMultipleProducts(List<int> Ids, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnMultipleProducts(Ids, Discount);
@@ -163,6 +189,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("ProductOfferBrand")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnBrandProducts(string BrandName, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnBrandProducts(BrandName, Discount);
@@ -176,6 +203,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("ProductOfferCategory")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnCategoriesProducts(string CategoryName, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnCategoryProducts(CategoryName, Discount);

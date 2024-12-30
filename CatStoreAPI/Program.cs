@@ -28,8 +28,7 @@ namespace CatStoreAPI
             var jwtSettings = builder.Configuration.GetSection("JWT");
 
             // Add services to the container.
-            var connectionString = Environment.GetEnvironmentVariable("DefaultConnection")
-                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -44,9 +43,12 @@ namespace CatStoreAPI
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
             builder.Services.AddScoped<IWishListRepository, WishListRepository>();
+            builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+
             builder.Services.AddScoped<IReorderCategoriesService, ReorderCategoriesService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
+            
             builder.Services.AddIdentity<AppUser, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
@@ -172,6 +174,8 @@ namespace CatStoreAPI
                 }
             );
 
+            builder.Services.AddOutputCache();
+
             builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
             {
                 options.TokenLifespan = TimeSpan.FromHours(3);  // Token is valid for 3 hours
@@ -208,6 +212,8 @@ namespace CatStoreAPI
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.UseOutputCache();
 
             app.MapControllers();
 
