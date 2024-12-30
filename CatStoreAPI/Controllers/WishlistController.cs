@@ -3,6 +3,7 @@ using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
 
 namespace CatStoreAPI.Controllers
@@ -12,15 +13,18 @@ namespace CatStoreAPI.Controllers
     public class WishlistController : ControllerBase
     {
         private readonly IUnitOfWork unitOfWork;
+        private readonly IOutputCacheStore outputCacheStore;
         private readonly APIResponse response;
 
-        public WishlistController(IUnitOfWork _unitOfWork)
+        public WishlistController(IUnitOfWork _unitOfWork, IOutputCacheStore outputCacheStore)
         {
             unitOfWork = _unitOfWork;
+            this.outputCacheStore = outputCacheStore;
             this.response = new APIResponse();
         }
 
         [HttpGet("{id}")]
+        [OutputCache(Duration = 60, VaryByRouteValueNames = ["id"], Tags = ["WishList"])]
         public async Task<IActionResult> GetWishListWithProductsAsync(int id)
         {
             try
@@ -49,6 +53,8 @@ namespace CatStoreAPI.Controllers
                 var product = await unitOfWork.WishLists.AddWishlistProductAsync(wishlistId, productId);
                 await unitOfWork.SaveChangesAsync();
 
+                await outputCacheStore.EvictByTagAsync($"CartItem-{wishlistId}", HttpContext.RequestAborted);
+
                 response.Result = product;
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
@@ -70,6 +76,8 @@ namespace CatStoreAPI.Controllers
             {
                 var product = await unitOfWork.WishLists.RemoveWishListItemAsync(wishlistId, productId);
                 await unitOfWork.SaveChangesAsync();
+
+                await outputCacheStore.EvictByTagAsync($"CartItem-{wishlistId}", HttpContext.RequestAborted);
 
                 response.Result = product;
                 response.StatusCode = HttpStatusCode.OK;

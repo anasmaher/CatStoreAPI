@@ -99,7 +99,6 @@ namespace Infrastructure.Repositories
         public async Task<ShoppingCartItem> RemoveCartItemAsync(int itemId)
         {
             var item = await dbContext.Items.FirstOrDefaultAsync(x => x.Id == itemId);
-            var cart = item.ShoppingCart;
 
             dbContext.Items.Remove(item);
 

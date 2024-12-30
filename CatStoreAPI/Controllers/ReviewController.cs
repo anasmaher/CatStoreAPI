@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
 using System.Security.Claims;
 
@@ -19,19 +20,22 @@ namespace CatStoreAPI.Controllers
         private readonly IProductRepository productRepository;
         private readonly IMapper mapper;
         private readonly IUnitOfWork unitOfWork;
+        private readonly IOutputCacheStore outputCacheStore;
         private readonly APIResponse response;
 
-        public ReviewController(IReviewRepository reviewRepository, IProductRepository productRepository, IMapper mapper, IUnitOfWork unitOfWork)
+        public ReviewController(IReviewRepository reviewRepository, IProductRepository productRepository, IMapper mapper, IUnitOfWork unitOfWork, IOutputCacheStore outputCacheStore)
         {
             this.reviewRepository = reviewRepository;
             this.productRepository = productRepository;
             this.mapper = mapper;
             this.unitOfWork = unitOfWork;
+            this.outputCacheStore = outputCacheStore;
             response = new APIResponse();
         }
 
         // GET: api/products/{productId}/reviews
         [HttpGet]
+        [OutputCache(Duration = 60, VaryByRouteValueNames = ["productId"], Tags = ["Reviews"])]
         public async Task<ActionResult<APIResponse>> GetReviews(int productId, int page = 1, int pageSize = 10, bool asc = false)
         {
             if (page <= 0) page = 1;
@@ -66,6 +70,7 @@ namespace CatStoreAPI.Controllers
 
         // GET: api/products/{productId}/reviews/{id}
         [HttpGet("{id}")]
+        [OutputCache(Duration = 120, VaryByRouteValueNames = ["productId", "id"], Tags = ["Review"])]
         public async Task<ActionResult<Review>> GetReview(int productId, int id)
         {
             var review = await unitOfWork.Reviews.GetReviewByIdAsync(id);
@@ -129,6 +134,9 @@ namespace CatStoreAPI.Controllers
             await unitOfWork.Reviews.AddAsync(review);
             await unitOfWork.SaveChangesAsync();
 
+            await outputCacheStore.EvictByTagAsync($"Reviews-{productId}", HttpContext.RequestAborted);
+            await outputCacheStore.EvictByTagAsync($"Review-{productId}, {review.Id}", HttpContext.RequestAborted);
+
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;
             response.Result = review;
@@ -170,6 +178,9 @@ namespace CatStoreAPI.Controllers
                 await unitOfWork.Reviews.UpdateReviewAsync(id, review);
                 await unitOfWork.SaveChangesAsync();
 
+                await outputCacheStore.EvictByTagAsync($"Reviews-{productId}", HttpContext.RequestAborted);
+                await outputCacheStore.EvictByTagAsync($"Review-{productId}, {review.Id}", HttpContext.RequestAborted);
+
                 response.IsSuccess = true;
                 response.StatusCode = HttpStatusCode.OK;
                 return Ok(response);
@@ -208,6 +219,9 @@ namespace CatStoreAPI.Controllers
 
             await unitOfWork.Reviews.RemoveAsync(x => x.Id == id);
             await unitOfWork.SaveChangesAsync();
+
+            await outputCacheStore.EvictByTagAsync($"Reviews-{productId}", HttpContext.RequestAborted);
+            await outputCacheStore.EvictByTagAsync($"Review-{productId}, {review.Id}", HttpContext.RequestAborted);
 
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;

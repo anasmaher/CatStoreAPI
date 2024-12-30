@@ -118,6 +118,7 @@ namespace Infrastructure.Repositories
                 var cat = await categoryRepo.GetSingleAsync(x => x.Name == categoryName);
                 UpdatedProduct.CategoryId = cat.Id;
                 UpdatedProduct.Reviews = product.Reviews;
+                UpdatedProduct.StockAmount = product.StockAmount;
 
                 dbContext.Update(UpdatedProduct);
 
