@@ -28,7 +28,14 @@ namespace CatStoreAPI
             var jwtSettings = builder.Configuration.GetSection("JWT");
 
             // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            var connectionString = Environment.GetEnvironmentVariable("DefaultConnection")
+                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("The connection string was not found.");
+            }
+
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseLazyLoadingProxies().UseSqlServer(connectionString));
 
@@ -99,8 +106,8 @@ namespace CatStoreAPI
             ).AddCookie()
             .AddGoogle(options =>
             {
-                options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+                options.ClientId = Environment.GetEnvironmentVariable("ClientId");
+                options.ClientSecret = Environment.GetEnvironmentVariable("ClientSecret");
 
                 options.Scope.Add("profile");
                 options.SaveTokens = true;
@@ -118,7 +125,7 @@ namespace CatStoreAPI
                         ValidateLifetime = true,
                         ValidIssuer = jwtSettings["Issuer"],
                         ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"])),
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("Key"))),
                         NameClaimType = JwtRegisteredClaimNames.Sub,
                         RoleClaimType = ClaimTypes.Role
                     };
