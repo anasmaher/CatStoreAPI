@@ -117,6 +117,7 @@ namespace Infrastructure.Repositories
                 UpdatedProduct.ImageUrl = product.ImageUrl;
                 var cat = await categoryRepo.GetSingleAsync(x => x.Name == categoryName);
                 UpdatedProduct.CategoryId = cat.Id;
+                UpdatedProduct.Reviews = product.Reviews;
 
                 dbContext.Update(UpdatedProduct);
 

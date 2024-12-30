@@ -41,12 +41,21 @@ namespace CatStoreAPI.Controllers
         {
             if (ModelState.IsValid)
             {
+                var existingUser = await userManager.FindByEmailAsync(registerDTO.email);
+                if (existingUser is not null)
+                {
+                    response.IsSuccess = false;
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    response.Errors.Add("User with this email already exists.");
+                    return BadRequest(response);
+                }
+
                 var res = await userService.CreateUserAsync(registerDTO.firstName, registerDTO.lastName, registerDTO.email, registerDTO.password);
 
                 if (res.Succeeded)
                 {
                     response.IsSuccess = true;
-                    response.StatusCode = HttpStatusCode.OK;
+                    response.StatusCode = HttpStatusCode.Created;
                     return Ok(response);
                 }
 
@@ -54,7 +63,6 @@ namespace CatStoreAPI.Controllers
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.Errors = new List<string>();
                 foreach (var err in res.Errors) response.Errors.Add(err.Description);             
-                
                 return BadRequest(response);
             }
 
@@ -217,7 +225,16 @@ namespace CatStoreAPI.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordDTO forgotPasswordDTO)
         {
-            if(!ModelState.IsValid) return BadRequest(ModelState);
+            if(!ModelState.IsValid)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(response);
+            }
 
             var user = await userManager.FindByEmailAsync(forgotPasswordDTO.Email);
 
@@ -254,7 +271,16 @@ namespace CatStoreAPI.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword(ResetPasswordDTO resetPasswordDTO)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(response);
+            }
 
             var user = await userManager.FindByEmailAsync(resetPasswordDTO.Email);
             if (user is null)
@@ -282,15 +308,24 @@ namespace CatStoreAPI.Controllers
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = new List<string>();
-            foreach(var err in result.Errors) response.Errors.Add($"{err}");
+            foreach(var err in result.Errors) response.Errors.Add(err.Description);
             return BadRequest(response);
         }
 
         [HttpPost("ChangePassword")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> ChangePassword(ChangePasswordDTO changePasswordDTO)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(response);
+            }
 
             var user = await userManager.GetUserAsync(User);
 
@@ -309,7 +344,7 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.Errors = new List<string>();
-                foreach (var err in res.Errors) response.Errors.Add($"{err}");
+                foreach (var err in res.Errors) response.Errors.Add(err.Description);
                 return BadRequest(response);
             }
            

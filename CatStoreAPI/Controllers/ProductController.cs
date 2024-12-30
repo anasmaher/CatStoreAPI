@@ -5,6 +5,7 @@ using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
 
 namespace CatStoreAPI.Controllers
@@ -15,24 +16,27 @@ namespace CatStoreAPI.Controllers
     {
         private readonly IMapper mapper;
         private readonly IUnitOfWork unitOfWork;
+        private readonly IOutputCacheStore outputCacheStore;
         private readonly APIResponse response;
 
-        public ProductController(IMapper mapper, IUnitOfWork unitOfWork)
+        public ProductController(IMapper mapper, IUnitOfWork unitOfWork, IOutputCacheStore outputCacheStore)
         {
             this.mapper = mapper;
             this.unitOfWork = unitOfWork;
+            this.outputCacheStore = outputCacheStore;
             this.response = new APIResponse();
         }
 
         [HttpGet]
+        [OutputCache(Duration = 60, Tags = ["Products"])]
         public async Task<ActionResult<APIResponse>> GetAllProducts(
-            [FromQuery] string searchName = null,
-            [FromQuery] string searchCategory = null,
-            [FromQuery] string searchBrand = null,
-            [FromQuery] string sortBy = null,
-            [FromQuery] bool isSortAscending = true,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            string searchName = null,
+            string searchCategory = null,
+            string searchBrand = null,
+            string sortBy = null,
+            bool isSortAscending = true,
+            int page = 1,
+            int pageSize = 10)
         {
             if (page <= 0) page = 1;
             if (pageSize <= 0) pageSize = 10;
@@ -56,6 +60,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpGet("{Id}")]
+        [OutputCache(Duration = 120, VaryByRouteValueNames = ["Id"], Tags = ["Product"])]
         public async Task<ActionResult<APIResponse>> GetProductById(int Id)
         {
             try
@@ -90,15 +95,23 @@ namespace CatStoreAPI.Controllers
                 var createdProduct = mapper.Map<Product>(productDTO);
 
                 await unitOfWork.AddProductWithNewCategoryAsync(createdProduct, productDTO.CategoryName);
-
                 await unitOfWork.SaveChangesAsync();
+
+                await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
 
                 response.Result = createdProduct;
                 response.StatusCode = HttpStatusCode.Created;
                 response.IsSuccess = true;
                 return Ok(response);
             }
-            return BadRequest(ModelState);
+
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(response);
         }
 
         [HttpPut("{Id}")]
@@ -115,9 +128,12 @@ namespace CatStoreAPI.Controllers
                 try
                 {
                     var updatedProduct = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
-                    await unitOfWork.Products.UpdateProductAsync(Id, updatedProduct, productDTO.CategoryName);
 
+                    await unitOfWork.Products.UpdateProductAsync(Id, updatedProduct, productDTO.CategoryName);
                     await unitOfWork.SaveChangesAsync();
+
+                    await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
+                    await outputCacheStore.EvictByTagAsync($"Product-{Id}", HttpContext.RequestAborted);
 
                     response.Result = updatedProduct;
                     response.StatusCode = HttpStatusCode.OK;
@@ -132,7 +148,14 @@ namespace CatStoreAPI.Controllers
                     return BadRequest(response);
                 }
             }
-            return BadRequest(ModelState);
+
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            response.Errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(response);
         }
 
         [HttpDelete("{Id}")]
@@ -142,9 +165,12 @@ namespace CatStoreAPI.Controllers
             try
             {
                 var removedProduct = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
-                await unitOfWork.Products.RemoveAsync(x => x.Id == Id);
 
+                await unitOfWork.Products.RemoveAsync(x => x.Id == Id);
                 await unitOfWork.SaveChangesAsync();
+
+                await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
+                await outputCacheStore.EvictByTagAsync($"Product-{Id}", HttpContext.RequestAborted);
 
                 response.Result = removedProduct;
                 response.StatusCode = HttpStatusCode.OK;
@@ -165,8 +191,10 @@ namespace CatStoreAPI.Controllers
         public async Task<ActionResult<APIResponse>> SetOfferOnSingleProduct(int Id, int Discount)
         {
             var productOffer = await unitOfWork.Products.SetOfferOnSingleProduct(Id, Discount);
-            
             await unitOfWork.SaveChangesAsync();
+
+            await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
+            await outputCacheStore.EvictByTagAsync($"Product-{Id}", HttpContext.RequestAborted);
 
             response.Result = productOffer;
             response.StatusCode = HttpStatusCode.OK;
@@ -179,8 +207,13 @@ namespace CatStoreAPI.Controllers
         public async Task<ActionResult<APIResponse>> SetOfferOnMultipleProducts(List<int> Ids, int Discount)
         {
             var productsOffer = await unitOfWork.Products.SetOfferOnMultipleProducts(Ids, Discount);
-
             await unitOfWork.SaveChangesAsync();
+
+            await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
+            foreach (var item in productsOffer)
+            {
+                await outputCacheStore.EvictByTagAsync($"Product-{item.Id}", HttpContext.RequestAborted);
+            }
 
             response.Result = productsOffer;
             response.StatusCode = HttpStatusCode.OK;
@@ -192,9 +225,22 @@ namespace CatStoreAPI.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnBrandProducts(string BrandName, int Discount)
         {
-            var productsOffer = await unitOfWork.Products.SetOfferOnBrandProducts(BrandName, Discount);
+            if (string.IsNullOrEmpty(BrandName))
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add("Brand name cannot be null or empty.");
+                return BadRequest(response);
+            }
 
+            var productsOffer = await unitOfWork.Products.SetOfferOnBrandProducts(BrandName, Discount);
             await unitOfWork.SaveChangesAsync();
+
+            await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
+            foreach (var item in productsOffer)
+            {
+                await outputCacheStore.EvictByTagAsync($"Product-{item.Id}", HttpContext.RequestAborted);
+            }
 
             response.Result = productsOffer;
             response.StatusCode = HttpStatusCode.OK;
@@ -206,9 +252,22 @@ namespace CatStoreAPI.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnCategoriesProducts(string CategoryName, int Discount)
         {
-            var productsOffer = await unitOfWork.Products.SetOfferOnCategoryProducts(CategoryName, Discount);
+            if (string.IsNullOrEmpty(CategoryName))
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add("Category name cannot be null or empty.");
+                return BadRequest(response);
+            }
 
+            var productsOffer = await unitOfWork.Products.SetOfferOnCategoryProducts(CategoryName, Discount);
             await unitOfWork.SaveChangesAsync();
+
+            await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
+            foreach (var item in productsOffer)
+            {
+                await outputCacheStore.EvictByTagAsync($"Product-{item.Id}", HttpContext.RequestAborted);
+            }
 
             response.Result = productsOffer;
             response.StatusCode = HttpStatusCode.OK;
