@@ -177,6 +177,15 @@ namespace CatStoreAPI
                 options.TokenLifespan = TimeSpan.FromHours(3);  // Token is valid for 3 hours
             });
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllPolicy", builder =>
+                {
+                    builder.AllowAnyOrigin()
+                           .AllowAnyHeader()
+                           .AllowAnyMethod();
+                });
+            });
 
             // Configure the HTTP request pipeline.
             var app = builder.Build();
@@ -192,6 +201,8 @@ namespace CatStoreAPI
             }
 
             app.UseHttpsRedirection();
+
+            app.UseCors("SpecificOriginsPolicy"); // Use the policy you defined
 
             app.UseRouting();
 

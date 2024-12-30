@@ -31,10 +31,10 @@
       "applicationUrl": "https://localhost:7196;http://localhost:5221",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CatStoreDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False",
-        "ClientId": "585377060495-ci0b4klrqnk8fs0nc0r9h8i5jhafgr0b.apps.googleusercontent.com",
-        "ClientSecret": "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",
-        "Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY="
+        //"DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CatStoreDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False",
+        //"ClientId": "585377060495-ci0b4klrqnk8fs0nc0r9h8i5jhafgr0b.apps.googleusercontent.com",
+        //"ClientSecret": "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",
+        //"Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY="
       }
     },
     "IIS Express": {
@@ -43,10 +43,10 @@
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CatStoreDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False",
-        "ClientId": "585377060495-ci0b4klrqnk8fs0nc0r9h8i5jhafgr0b.apps.googleusercontent.com",
-        "ClientSecret": "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",
-        "Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY="
+        //"DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CatStoreDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False",
+        //"ClientId": "585377060495-ci0b4klrqnk8fs0nc0r9h8i5jhafgr0b.apps.googleusercontent.com",
+        //"ClientSecret": "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",
+        //"Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY="
       }
     }
   }
