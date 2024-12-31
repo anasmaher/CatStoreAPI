@@ -17,10 +17,6 @@
       "applicationUrl": "http://localhost:5221",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CatStoreDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False",
-        "ClientId": "585377060495-ci0b4klrqnk8fs0nc0r9h8i5jhafgr0b.apps.googleusercontent.com",
-        "ClientSecret": "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",
-        "Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY="
       }
     },
     "https": {
@@ -31,10 +27,6 @@
       "applicationUrl": "https://localhost:7196;http://localhost:5221",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CatStoreDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False",
-        "ClientId": "585377060495-ci0b4klrqnk8fs0nc0r9h8i5jhafgr0b.apps.googleusercontent.com",
-        "ClientSecret": "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",
-        "Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY="
       }
     },
     "IIS Express": {
@@ -46,7 +38,9 @@
         "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CatStoreDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False",
         "ClientId": "585377060495-ci0b4klrqnk8fs0nc0r9h8i5jhafgr0b.apps.googleusercontent.com",
         "ClientSecret": "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",
-        "Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY="
+        "Key": "K4AyIn+Kvd9C3wPCoFV27C5YBA+W5Kf5iakssirAJrY=",
+        "SecretKey": "sk_test_51QcBOuJXDg2bjrvBUsyaQhiEYCVWEsoOkPuekWTpp479tj36qksWcyD4rJUGSunNIjegQ6xoSmQeB63d6i6Njtub00hV9ZjRAj",
+        "PublishableKey": "pk_test_51QcBOuJXDg2bjrvB9UNFCLw1Kz6NrdfyDALUm7gLj4LXPNPmbHJbuz0Qp1S5z4BAKatot74S3HXqxB5kZAiMTDfG00SwPMCph9"
       }
     }
   }

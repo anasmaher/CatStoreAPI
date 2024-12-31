@@ -102,29 +102,9 @@ namespace Infrastructure.Repositories
                 throw new Exception("Product not found!");
         }
 
-        public async Task<Product> UpdateProductAsync(int Id, Product product, string categoryName)
+        public void UpdateProduct(Product product)
         {
-            var UpdatedProduct = await GetSingleAsync(x => x.Id == Id);
-
-            if (UpdatedProduct is not null)
-            {
-                UpdatedProduct.Name = product.Name;
-                UpdatedProduct.Description = product.Description;
-                UpdatedProduct.Price = product.Price;
-                UpdatedProduct.Brand = product.Brand;
-                UpdatedProduct.LifeStage = product.LifeStage;
-                UpdatedProduct.ProductCode = product.ProductCode;
-                UpdatedProduct.ImageUrl = product.ImageUrl;
-                var cat = await categoryRepo.GetSingleAsync(x => x.Name == categoryName);
-                UpdatedProduct.CategoryId = cat.Id;
-                UpdatedProduct.Reviews = product.Reviews;
-                UpdatedProduct.StockAmount = product.StockAmount;
-
-                dbContext.Update(UpdatedProduct);
-
-                return UpdatedProduct;
-            }
-            throw new Exception("Product not found!");
+            dbContext.Products.Update(product);
         }
     }
 }

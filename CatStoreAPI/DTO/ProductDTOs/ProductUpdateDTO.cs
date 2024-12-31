@@ -27,5 +27,8 @@ namespace CatStoreAPI.DTO.ProductDTOs
 
         [Required, MaxLength(500)]
         public string ImageUrl { get; set; }
+
+        [Required]
+        public int stockAmount { get; set; }
     }
 }

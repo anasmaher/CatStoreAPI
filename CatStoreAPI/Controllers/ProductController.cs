@@ -118,24 +118,23 @@ namespace CatStoreAPI.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> EditProduct(int Id, ProductUpdateDTO productDTO)
         {
-            var existProductCode = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
+            var existProduct = await unitOfWork.Products.GetSingleAsync(x => x.ProductCode == productDTO.ProductCode);
 
-            if (existProductCode != null && existProductCode.Id != Id)
+            if (existProduct is not null && existProduct.Id != Id)
                 ModelState.AddModelError("", "Product Code already exists.");
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    var updatedProduct = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
-
-                    await unitOfWork.Products.UpdateProductAsync(Id, updatedProduct, productDTO.CategoryName);
+                    mapper.Map(productDTO, existProduct);
+                    unitOfWork.Products.UpdateProduct(existProduct);
                     await unitOfWork.SaveChangesAsync();
 
                     await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
                     await outputCacheStore.EvictByTagAsync($"Product-{Id}", HttpContext.RequestAborted);
 
-                    response.Result = updatedProduct;
+                    response.Result = existProduct;
                     response.StatusCode = HttpStatusCode.OK;
                     response.IsSuccess = true;
                     return Ok(response);

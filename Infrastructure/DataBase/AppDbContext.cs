@@ -31,6 +31,16 @@ namespace Infrastructure.DataBase
                 .WithMany(i => i.Items)
                 .HasForeignKey(x => x.ProductId);
 
+            builder.Entity<Order>()
+                .HasMany(i => i.OrderItems)
+                .WithOne(s => s.Order)
+                .HasForeignKey(x => x.OrderId);
+
+            builder.Entity<OrderItem>()
+                .HasOne(p => p.Product)
+                .WithMany(i => i.OrderItems)
+                .HasForeignKey(x => x.ProductId);
+
             builder.Entity<WishList>()
                 .HasMany(w => w.Products)
                 .WithMany(p => p.WhishLists)
@@ -52,7 +62,6 @@ namespace Infrastructure.DataBase
             .HasForeignKey(r => r.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
-            // User-Review relationship
             builder.Entity<AppUser>()
                 .HasMany(u => u.Reviews)
                 .WithOne(r => r.User)
@@ -68,5 +77,7 @@ namespace Infrastructure.DataBase
         public DbSet<AppUser> Users { get; set; }
         public DbSet<TokenModel> Tokens { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<ShoppingCartItem> ShoppingCartItems { get; set; }
     }
 }

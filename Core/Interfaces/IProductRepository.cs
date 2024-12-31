@@ -7,7 +7,7 @@ namespace Core.Interfaces
     {
         Task<List<Product>> GetAllAsync(string searchName = null, string searchCategory = null, string searchBrand = null, string sortBy = null, bool isSortAscending = true, int page = 1, int pageSize = 10);
 
-        Task<Product> UpdateProductAsync(int Id, Product obj, string categoryName);
+        void UpdateProduct(Product obj);
 
         Task<Product> SetOfferOnSingleProduct(int Id, int Discount);
 

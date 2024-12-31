@@ -14,95 +14,115 @@ namespace Infrastructure.Repositories
             dbContext = _dbContext;
         }
 
-        public async Task<ShoppingCart> CreateCartAsync()
+        public async Task<ShoppingCart> CreateCartAsync(string userId)
         {
-            var cart = new ShoppingCart();
+            var cart = new ShoppingCart
+            {
+                userId = userId
+            };
+
             await dbContext.ShoppingCarts.AddAsync(cart);
+            await dbContext.SaveChangesAsync();
 
             return cart;
         }
 
-        public async Task<ShoppingCart> GetCartWithItemsAsync(int id)
+        // Get the cart with items for a specific user
+        public async Task<ShoppingCart> GetCartWithItemsAsync(string userId)
         {
             var cart = await dbContext.ShoppingCarts
                 .Include(x => x.Items)
                 .ThenInclude(x => x.Product)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.userId == userId);
 
             if (cart is null)
-                cart = await CreateCartAsync();
+                cart = await CreateCartAsync(userId);
 
             return cart;
         }
 
-        public async Task<ShoppingCartItem> GetCartItemByIdAsync(int id)
+        public async Task<ShoppingCartItem> GetCartItemByIdAsync(int itemId)
         {
-            var item = await dbContext.Items.FirstOrDefaultAsync(x => x.Id == id);
+            var item = await dbContext.Set<ShoppingCartItem>()
+                .Include(i => i.Product)
+                .FirstOrDefaultAsync(i => i.Id == itemId);
 
             return item;
         }
 
-        public async Task<ShoppingCartItem> AddItemAsync(int cartId, int ProductId, int quantity)
+        // Add an item to the cart for a specific user
+        public async Task<ShoppingCartItem> AddItemAsync(string userId, int productId, int quantity)
         {
-            var cart = await GetCartWithItemsAsync(cartId);
+            if (quantity <= 0)
+                throw new ArgumentException("Quantity must be greater than zero.");
 
+            var cart = await GetCartWithItemsAsync(userId);
             if (cart is null)
-                cart = await CreateCartAsync();
-            
-
-            var itemHasProduct = await dbContext.Items
-                .FirstOrDefaultAsync(x => x.ShoppingCartId == cartId && x.ProductId == ProductId);
-
-            var item = new ShoppingCartItem();
-
-            if (itemHasProduct is null)
             {
-                var currentProduct = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == ProductId);
+                cart = await CreateCartAsync(userId);
+            }
 
-                item = new ShoppingCartItem()
+            var existingCartItem = cart.Items.FirstOrDefault(x => x.ProductId == productId);
+
+            if (existingCartItem is null)
+            {
+                var product = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == productId);
+                if (product is null)
+                    throw new ArgumentException("Product not found.");
+
+                var cartItem = new ShoppingCartItem
                 {
-                    ProductId = ProductId,
-                    Product = currentProduct,
+                    ShoppingCartId = cart.Id,
+                    ProductId = productId,
                     Quantity = quantity,
-                    ShoppingCartId = cartId,
-                    ShoppingCart = cart
                 };
 
-                cart.Items.Add(item);
-
-                await dbContext.Items.AddAsync(item);
+                await dbContext.ShoppingCartItems.AddAsync(cartItem);
+                cart.Items.Add(cartItem);
             }
             else
             {
-                item = await dbContext.Items
-                    .FirstOrDefaultAsync(x => x.ProductId == ProductId && x.ShoppingCartId == cartId);
-                
-                await UpdateCartItemAsync(item.Id, item.Quantity + quantity);
+                existingCartItem.Quantity += quantity;
+                dbContext.ShoppingCartItems.Update(existingCartItem);
             }
 
+            await dbContext.SaveChangesAsync();
+            return existingCartItem ?? cart.Items.FirstOrDefault(x => x.ProductId == productId);
+        }
+
+        // Update the quantity of a cart item
+        public async Task<ShoppingCartItem> UpdateCartItemAsync(string userId, int itemId, int quantity)
+        {
+            if (quantity <= 0)
+                throw new ArgumentException("Quantity must be greater than zero.");
+
+            var cart = await GetCartWithItemsAsync(userId);
+            var item = cart.Items.FirstOrDefault(x => x.Id == itemId);
+
+            if (item is null)
+                throw new ArgumentException("Cart item not found.");
+
+            item.Quantity = quantity;
+            dbContext.ShoppingCartItems.Update(item);
+
+            await dbContext.SaveChangesAsync();
             return item;
         }
 
-        public async Task<ShoppingCartItem> UpdateCartItemAsync(int itemId, int quantity)
+        // Remove a cart item
+        public async Task<bool> RemoveCartItemAsync(string userId, int itemId)
         {
-            var item = await GetCartItemByIdAsync(itemId);
+            var cart = await GetCartWithItemsAsync(userId);
+            var item = cart.Items.FirstOrDefault(x => x.Id == itemId);
 
-            var cart = await dbContext.ShoppingCarts.FirstOrDefaultAsync(x => x.Id == item.ShoppingCartId);
-            
-            item.Quantity = quantity; 
+            if (item is null)
+                return false;
 
-            dbContext.Items.Update(item);
+            cart.Items.Remove(item);
+            dbContext.ShoppingCartItems.Remove(item);
 
-            return item;
-        }
-
-        public async Task<ShoppingCartItem> RemoveCartItemAsync(int itemId)
-        {
-            var item = await dbContext.Items.FirstOrDefaultAsync(x => x.Id == itemId);
-
-            dbContext.Items.Remove(item);
-
-            return item;
+            await dbContext.SaveChangesAsync();
+            return true;
         }
     }
 }

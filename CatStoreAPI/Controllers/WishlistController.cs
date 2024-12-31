@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
@@ -24,6 +25,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         [OutputCache(Duration = 60, VaryByRouteValueNames = ["id"], Tags = ["WishList"])]
         public async Task<IActionResult> GetWishListWithProductsAsync(int id)
         {
@@ -46,6 +48,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("AddToWishlist/{wishlistId}")]
+        [Authorize]
         public async Task<IActionResult> AddWishlistProductAsync(int wishlistId, int productId)
         {
             try
@@ -53,7 +56,7 @@ namespace CatStoreAPI.Controllers
                 var product = await unitOfWork.WishLists.AddWishlistProductAsync(wishlistId, productId);
                 await unitOfWork.SaveChangesAsync();
 
-                await outputCacheStore.EvictByTagAsync($"CartItem-{wishlistId}", HttpContext.RequestAborted);
+                await outputCacheStore.EvictByTagAsync($"WishList", HttpContext.RequestAborted);
 
                 response.Result = product;
                 response.StatusCode = HttpStatusCode.OK;
@@ -70,6 +73,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpPost("RemoveFromWishlist/{wishlistId}")]
+        [Authorize]
         public async Task<IActionResult> RemoveWishListItemAsync(int wishlistId, int productId)
         {
             try
@@ -77,7 +81,7 @@ namespace CatStoreAPI.Controllers
                 var product = await unitOfWork.WishLists.RemoveWishListItemAsync(wishlistId, productId);
                 await unitOfWork.SaveChangesAsync();
 
-                await outputCacheStore.EvictByTagAsync($"CartItem-{wishlistId}", HttpContext.RequestAborted);
+                await outputCacheStore.EvictByTagAsync($"WhishList", HttpContext.RequestAborted);
 
                 response.Result = product;
                 response.StatusCode = HttpStatusCode.OK;

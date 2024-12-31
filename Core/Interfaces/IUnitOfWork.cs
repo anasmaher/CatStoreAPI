@@ -15,6 +15,7 @@ namespace Core.Interfaces
         IShoppingCartRepository ShoppingCarts { get; }
         IWishListRepository WishLists { get; }
         IReviewRepository Reviews { get; }
+        IOrderRepository Orders { get; }
 
         Task<Product> AddProductWithNewCategoryAsync(Product product, string categoryName);
 

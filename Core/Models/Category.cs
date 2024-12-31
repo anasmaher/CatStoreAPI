@@ -19,6 +19,8 @@ namespace CatStoreAPI.Core.Models
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
+        [JsonIgnore]
+        [IgnoreDataMember]
         public virtual List<Product> Products { get; set; }
     }
 }

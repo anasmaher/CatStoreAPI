@@ -2,6 +2,7 @@
 using CatStoreAPI.Core.Models;
 using CatStoreAPI.DTO.AuthDTOs;
 using CatStoreAPI.DTO.CategoryDTOs;
+using CatStoreAPI.DTO.OrderDTOs;
 using CatStoreAPI.DTO.ProductDTOs;
 using CatStoreAPI.DTO.ReviewDTOs;
 using Core.Models;
@@ -22,6 +23,9 @@ namespace CatStoreAPI.Configuration
 
             CreateMap<ReviewCreateDTO, Review>().ReverseMap();
             CreateMap<ReviewEditDTO, Review>().ReverseMap();
+
+            CreateMap<ShippingAddress, ShippingAddressDTO>().ReverseMap();
+            CreateMap<OrderCreateDTO, Order>().ReverseMap();
         }
     }
 }

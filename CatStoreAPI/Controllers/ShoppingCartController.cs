@@ -1,9 +1,11 @@
 ﻿using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
+using System.Security.Claims;
 
 namespace CatStoreAPI.Controllers
 {
@@ -22,13 +24,15 @@ namespace CatStoreAPI.Controllers
             this.response = new APIResponse();
         }
 
-        [HttpGet("{id}")]
+        [HttpGet()]
+        [Authorize]
         [OutputCache(Duration = 60, Tags = ["Cart"])]
-        public async Task<ActionResult<APIResponse>> GetCartWithItemsAsync(int id)
+        public async Task<ActionResult<APIResponse>> GetCartWithItemsAsync()
         {
             try
             {
-                var cart = await unitOfWork.ShoppingCarts.GetCartWithItemsAsync(id);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var cart = await unitOfWork.ShoppingCarts.GetCartWithItemsAsync(userId);
 
                 response.Result = cart;
                 response.StatusCode = HttpStatusCode.OK;
@@ -45,6 +49,7 @@ namespace CatStoreAPI.Controllers
         }
 
         [HttpGet("getItem/{id}")]
+        [Authorize]
         [OutputCache(Duration = 120, VaryByRouteValueNames = ["id"], Tags = ["CartItem"])]
         public async Task<ActionResult<APIResponse>> GetCartItemByIdAsync(int id)
         {
@@ -66,12 +71,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpPost("{cartId}")]
-        public async Task<ActionResult<APIResponse>> AddItemAsync(int cartId, int ProductId, int quantity)
+        [HttpPost("AddItem")]
+        [Authorize]
+        public async Task<ActionResult<APIResponse>> AddItemAsync(int ProductId, int quantity)
         {
             try
             {
-                var item = await unitOfWork.ShoppingCarts.AddItemAsync(cartId, ProductId, quantity);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var item = await unitOfWork.ShoppingCarts.AddItemAsync(userId, ProductId, quantity);
 
                 await outputCacheStore.EvictByTagAsync("Cart", HttpContext.RequestAborted);
 
@@ -89,12 +96,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpPut("{itemId}")]
+        [HttpPut("UpdateCartItem")]
+        [Authorize]
         public async Task<ActionResult<APIResponse>> UpdateCartItemAsync(int itemId, int quantity)
         {
             try
             {
-                var item = await unitOfWork.ShoppingCarts.UpdateCartItemAsync(itemId, quantity);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var item = await unitOfWork.ShoppingCarts.UpdateCartItemAsync(userId, itemId, quantity);
 
                 await outputCacheStore.EvictByTagAsync("Cart", HttpContext.RequestAborted);
                 await outputCacheStore.EvictByTagAsync($"CartItem-{itemId}", HttpContext.RequestAborted);
@@ -113,12 +122,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpDelete("{itemId}")]
+        [HttpDelete("RemoveCartItem")]
+        [Authorize]
         public async Task<ActionResult<APIResponse>> RemoveCartItemAsync(int itemId)
         {
             try
             {
-                var item = await unitOfWork.ShoppingCarts.RemoveCartItemAsync(itemId);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var item = await unitOfWork.ShoppingCarts.RemoveCartItemAsync(userId, itemId);
 
                 await outputCacheStore.EvictByTagAsync("Cart", HttpContext.RequestAborted);
                 await outputCacheStore.EvictByTagAsync($"CartItem-{itemId}", HttpContext.RequestAborted);

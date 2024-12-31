@@ -4,15 +4,15 @@ namespace Core.Interfaces
 {
     public interface IShoppingCartRepository : IRepository<ShoppingCart>
     {
-        public Task<ShoppingCart> GetCartWithItemsAsync(int id);
+        public Task<ShoppingCart> GetCartWithItemsAsync(string id);
 
         public Task<ShoppingCartItem> GetCartItemByIdAsync(int id);
 
-        public Task<ShoppingCartItem> AddItemAsync(int cartId, int ProductId, int quantity);
+        public Task<ShoppingCartItem> AddItemAsync(string userId, int ProductId, int quantity);
 
-        public Task<ShoppingCartItem> UpdateCartItemAsync(int itemId, int quantity);
+        public Task<ShoppingCartItem> UpdateCartItemAsync(string userId, int itemId, int quantity);
 
-        public Task<ShoppingCartItem> RemoveCartItemAsync(int itemId);
+        public Task<bool> RemoveCartItemAsync(string userId, int itemId);
 
     }
 }

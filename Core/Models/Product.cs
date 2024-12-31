@@ -54,6 +54,10 @@ namespace Core.Models
 
         [JsonIgnore]
         [IgnoreDataMember]
+        public virtual List<OrderItem> OrderItems { get; set; }
+
+        [JsonIgnore]
+        [IgnoreDataMember]
         public virtual List<WishList> WhishLists { get; set; }
 
         public virtual List<Review> Reviews { get; set; }
