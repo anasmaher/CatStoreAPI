@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
+using System.Security.Claims;
 
 namespace CatStoreAPI.Controllers
 {
@@ -24,14 +25,15 @@ namespace CatStoreAPI.Controllers
             this.response = new APIResponse();
         }
 
-        [HttpGet("{id}")]
+        [HttpGet]
         [Authorize]
-        [OutputCache(Duration = 60, VaryByRouteValueNames = ["id"], Tags = ["WishList"])]
-        public async Task<IActionResult> GetWishListWithProductsAsync(int id)
+        [OutputCache(Duration = 60, Tags = ["WishList"])]
+        public async Task<IActionResult> GetWishListWithProductsAsync()
         {
             try
             {
-                var wishlist = await unitOfWork.WishLists.GetWishListWithProductsAsync(id);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var wishlist = await unitOfWork.WishLists.GetWishListWithProductsAsync(userId);
 
                 response.Result = wishlist;
                 response.StatusCode = HttpStatusCode.OK;
@@ -47,13 +49,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpPost("AddToWishlist/{wishlistId}")]
+        [HttpPost("AddWishlistProduct/{productId}")]
         [Authorize]
-        public async Task<IActionResult> AddWishlistProductAsync(int wishlistId, int productId)
+        public async Task<IActionResult> AddWishlistProductAsync(int productId)
         {
             try
             {
-                var product = await unitOfWork.WishLists.AddWishlistProductAsync(wishlistId, productId);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var product = await unitOfWork.WishLists.AddWishlistProductAsync(userId, productId);
                 await unitOfWork.SaveChangesAsync();
 
                 await outputCacheStore.EvictByTagAsync($"WishList", HttpContext.RequestAborted);
@@ -72,18 +75,18 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpPost("RemoveFromWishlist/{wishlistId}")]
+        [HttpPost("RemoveWishListProduct/{productId}")]
         [Authorize]
-        public async Task<IActionResult> RemoveWishListItemAsync(int wishlistId, int productId)
+        public async Task<IActionResult> RemoveWishListProductAsync(int productId)
         {
             try
             {
-                var product = await unitOfWork.WishLists.RemoveWishListItemAsync(wishlistId, productId);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                await unitOfWork.WishLists.RemoveWishListProductAsync(userId, productId);
                 await unitOfWork.SaveChangesAsync();
 
                 await outputCacheStore.EvictByTagAsync($"WhishList", HttpContext.RequestAborted);
 
-                response.Result = product;
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
                 return Ok(response);

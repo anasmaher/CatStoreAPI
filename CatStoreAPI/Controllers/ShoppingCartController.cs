@@ -24,7 +24,7 @@ namespace CatStoreAPI.Controllers
             this.response = new APIResponse();
         }
 
-        [HttpGet()]
+        [HttpGet]
         [Authorize]
         [OutputCache(Duration = 60, Tags = ["Cart"])]
         public async Task<ActionResult<APIResponse>> GetCartWithItemsAsync()
@@ -48,7 +48,7 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpGet("getItem/{id}")]
+        [HttpGet("GetCartItemById/{id}")]
         [Authorize]
         [OutputCache(Duration = 120, VaryByRouteValueNames = ["id"], Tags = ["CartItem"])]
         public async Task<ActionResult<APIResponse>> GetCartItemByIdAsync(int id)

@@ -9,13 +9,12 @@ namespace Core.Interfaces
 {
     public interface IWishListRepository : IRepository<WishList>
     {
-        public Task<WishList> GetWishListWithProductsAsync(int id);
+        public Task<WishList> GetWishListWithProductsAsync(string userId);
 
-        public Task<WishList> CreateWishListAsync();
+        public Task<WishList> CreateWishListAsync(string userId);
 
-        public Task<Product> AddWishlistProductAsync(int wishlistId, int productId);
+        public Task<Product> AddWishlistProductAsync(string UserId, int productId);
 
-        public Task<Product> RemoveWishListItemAsync(int wishlistId, int productId);
-
+        public Task<bool> RemoveWishListProductAsync(string userId, int productId);
     }
 }
