@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using CatStoreAPI.DTO.OrderDTOs;
-using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Repositories;
@@ -34,7 +33,6 @@ namespace CatStoreAPI.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Validate model
             if (!ModelState.IsValid)
             {
                 response.IsSuccess = false;
@@ -46,7 +44,6 @@ namespace CatStoreAPI.Controllers
                 return BadRequest(response);
             }
 
-            // Ensure shopping cart is valid
             var cart = await unitOfWork.ShoppingCarts.GetSingleAsync(x => x.userId == userId);
             if (cart is null || !cart.Items.Any())
             {
@@ -56,7 +53,6 @@ namespace CatStoreAPI.Controllers
                 return BadRequest(response);
             }
 
-            // Create payment intent
             var paymentIntent = await paymentService.CreateOrUpdatePaymentIntent(userId);
             if (paymentIntent is null)
             {
@@ -66,7 +62,6 @@ namespace CatStoreAPI.Controllers
                 return BadRequest(response);
             }
 
-            // Create order
             var order = new Order
             {
                 UserId = userId,
@@ -79,11 +74,8 @@ namespace CatStoreAPI.Controllers
                     Quantity = item.Quantity,
                     UnitPrice = item.price,
                 }).ToList(),
-
-                Status = OrderStatus.Pending
             };
 
-            // Deduct stock quantities
             var productIds = order.OrderItems.Select(x => x.ProductId).ToList();
             List<Product> products = new List<Product>();
             foreach (var prodId  in productIds)
@@ -107,7 +99,6 @@ namespace CatStoreAPI.Controllers
             await unitOfWork.Orders.AddAsync(order);
             await unitOfWork.SaveChangesAsync();
 
-            // Clear shopping cart
             await unitOfWork.ShoppingCarts.RemoveAsync(x => x.Id == cart.Id);
             await unitOfWork.SaveChangesAsync();
 

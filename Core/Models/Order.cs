@@ -1,5 +1,4 @@
-﻿using Core.Enums;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace Core.Models
@@ -15,8 +14,6 @@ namespace Core.Models
         public virtual AppUser User { get; set; }
 
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;
-
-        public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
         public decimal TotalAmount { get; set; }
 
