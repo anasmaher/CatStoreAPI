@@ -1,7 +1,7 @@
 # CatStoreAPI
 
 ## Project structure
-
+```
 CatStoreAPI/
 ├── CatStoreAPI/            # Main API Project
 │   ├── Auth/               # JWT Authentication Helpers
@@ -23,5 +23,5 @@ CatStoreAPI/
 │   └── Infrastructure.csproj
 ├── CatStoreAPI.sln         # Solution File
 └── README.md               # Project README
-
+```
 
