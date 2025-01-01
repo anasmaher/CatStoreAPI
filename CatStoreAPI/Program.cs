@@ -230,21 +230,22 @@ namespace CatStoreAPI
 
             // Configure the HTTP request pipeline.
 
+            
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.DisplayRequestDuration();
-                });
             }
             else
             {
                 app.UseExceptionHandler("/error");
                 app.UseHsts();
             }
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.DisplayRequestDuration();
+            });
 
             app.UseHttpsRedirection();
 
