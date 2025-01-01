@@ -26,7 +26,7 @@ CatStoreAPI/
 ```
 
 ## Key features
-** 🔐 Authentication & Authorization
+### 🔐 Authentication & Authorization
 * User registration and login
 * JWT token authentication
 * Refresh token mechanism
@@ -36,7 +36,7 @@ CatStoreAPI/
 * Reset password
 * User profile editing
 * Token cleanup service
-* 📦 Product Management
+### 📦 Product Management
 * CRUD operations for products
 * Product categorization
 * Product images handling
