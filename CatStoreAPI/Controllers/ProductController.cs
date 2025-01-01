@@ -131,6 +131,7 @@ namespace CatStoreAPI.Controllers
                 var createdProduct = mapper.Map<Product>(productDTO);
 
                 await unitOfWork.AddProductWithNewCategoryAsync(createdProduct, productDTO.CategoryName);
+                
                 await unitOfWork.SaveChangesAsync();
 
                 await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
