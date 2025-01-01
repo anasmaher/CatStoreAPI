@@ -1,7 +1,6 @@
 ﻿using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
@@ -9,6 +8,9 @@ using System.Security.Claims;
 
 namespace CatStoreAPI.Controllers
 {
+    /// <summary>
+    /// Controller for managing users' shopping carts.
+    /// </summary>
     [Route("api/ShoppingCart")]
     [ApiController]
     public class ShoppingCartController : ControllerBase
@@ -24,6 +26,13 @@ namespace CatStoreAPI.Controllers
             this.response = new APIResponse();
         }
 
+        /// <summary>
+        /// Retrieves the current user's shopping cart along with all items.
+        /// </summary>
+        /// <returns>An ActionResult containing an APIResponse with the user's shopping cart.</returns>
+        /// <response code="200">Shopping cart retrieved successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
         [HttpGet]
         [Authorize]
         [OutputCache(Duration = 60, Tags = ["Cart"])]
@@ -48,6 +57,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves a specific item from the user's shopping cart by item ID.
+        /// </summary>
+        /// <param name="id">The unique identifier of the cart item.</param>
+        /// <returns>An ActionResult containing an APIResponse with the cart item details.</returns>
+        /// <response code="200">Cart item retrieved successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
         [HttpGet("GetCartItemById/{id}")]
         [Authorize]
         [OutputCache(Duration = 120, VaryByRouteValueNames = ["id"], Tags = ["CartItem"])]
@@ -71,6 +88,15 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Adds a new item to the user's shopping cart.
+        /// </summary>
+        /// <param name="ProductId">The unique identifier of the product to add.</param>
+        /// <param name="quantity">The quantity of the product to add.</param>
+        /// <returns>An ActionResult containing an APIResponse with the added cart item details.</returns>
+        /// <response code="200">Item added to cart successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
         [HttpPost("AddItem")]
         [Authorize]
         public async Task<ActionResult<APIResponse>> AddItemAsync(int ProductId, int quantity)
@@ -96,6 +122,15 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Updates the quantity of an existing item in the user's shopping cart.
+        /// </summary>
+        /// <param name="itemId">The unique identifier of the cart item to update.</param>
+        /// <param name="quantity">The new quantity of the product.</param>
+        /// <returns>An ActionResult containing an APIResponse with the updated cart item details.</returns>
+        /// <response code="200">Cart item updated successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
         [HttpPut("UpdateCartItem")]
         [Authorize]
         public async Task<ActionResult<APIResponse>> UpdateCartItemAsync(int itemId, int quantity)
@@ -122,6 +157,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Removes an item from the user's shopping cart.
+        /// </summary>
+        /// <param name="itemId">The unique identifier of the cart item to remove.</param>
+        /// <returns>An ActionResult containing an APIResponse indicating the result of the operation.</returns>
+        /// <response code="200">Cart item removed successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
         [HttpDelete("RemoveCartItem")]
         [Authorize]
         public async Task<ActionResult<APIResponse>> RemoveCartItemAsync(int itemId)

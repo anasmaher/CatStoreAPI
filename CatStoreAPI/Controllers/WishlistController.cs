@@ -1,8 +1,6 @@
-﻿using Azure;
-using Core.Interfaces;
+﻿using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
@@ -10,6 +8,9 @@ using System.Security.Claims;
 
 namespace CatStoreAPI.Controllers
 {
+    /// <summary>
+    /// Controller for managing users' wishlists.
+    /// </summary>
     [Route("api/Wishlist")]
     [ApiController]
     public class WishlistController : ControllerBase
@@ -25,6 +26,13 @@ namespace CatStoreAPI.Controllers
             this.response = new APIResponse();
         }
 
+        /// <summary>
+        /// Retrieves the current user's wishlist along with all products.
+        /// </summary>
+        /// <returns>An IActionResult containing an APIResponse with the user's wishlist.</returns>
+        /// <response code="200">Wishlist retrieved successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
         [HttpGet]
         [Authorize]
         [OutputCache(Duration = 60, Tags = ["WishList"])]
@@ -49,6 +57,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Adds a product to the current user's wishlist.
+        /// </summary>
+        /// <param name="productId">The unique identifier of the product to add.</param>
+        /// <returns>An IActionResult containing an APIResponse with the added product details.</returns>
+        /// <response code="200">Product added to wishlist successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
         [HttpPost("AddWishlistProduct/{productId}")]
         [Authorize]
         public async Task<IActionResult> AddWishlistProductAsync(int productId)
@@ -75,7 +91,15 @@ namespace CatStoreAPI.Controllers
             }
         }
 
-        [HttpPost("RemoveWishListProduct/{productId}")]
+        /// <summary>
+        /// Removes a product from the current user's wishlist.
+        /// </summary>
+        /// <param name="productId">The unique identifier of the product to remove.</param>
+        /// <returns>An IActionResult indicating the result of the operation.</returns>
+        /// <response code="200">Product removed from wishlist successfully.</response>
+        /// <response code="400">Bad request due to an error.</response>
+        /// <remarks>Requires authentication.</remarks>
+        [HttpDelete("RemoveWishListProduct/{productId}")]
         [Authorize]
         public async Task<IActionResult> RemoveWishListProductAsync(int productId)
         {
@@ -85,7 +109,7 @@ namespace CatStoreAPI.Controllers
                 await unitOfWork.WishLists.RemoveWishListProductAsync(userId, productId);
                 await unitOfWork.SaveChangesAsync();
 
-                await outputCacheStore.EvictByTagAsync($"WhishList", HttpContext.RequestAborted);
+                await outputCacheStore.EvictByTagAsync($"WishList", HttpContext.RequestAborted);
 
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;

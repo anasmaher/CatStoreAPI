@@ -35,6 +35,13 @@ namespace CatStoreAPI.Controllers
             response = new APIResponse();
         }
 
+        /// <summary>
+        /// Registers a new user in the system.
+        /// </summary>
+        /// <param name="registerDTO">An object containing the registration details of the user.</param>
+        /// <returns>An IActionResult indicating the result of the registration operation.</returns>
+        /// <response code="200">User registered successfully.</response>
+        /// <response code="400">Registration failed due to validation errors or duplicate email.</response>
         [HttpPost("Register")]
         [AllowAnonymous]
         public async Task<IActionResult> Register(AuthRegisterDTO registerDTO)
@@ -62,7 +69,7 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.Errors = new List<string>();
-                foreach (var err in res.Errors) response.Errors.Add(err.Description);             
+                foreach (var err in res.Errors) response.Errors.Add(err.Description);
                 return BadRequest(response);
             }
 
@@ -75,6 +82,14 @@ namespace CatStoreAPI.Controllers
             return BadRequest(response);
         }
 
+        /// <summary>
+        /// Logs in an existing user using email and password.
+        /// </summary>
+        /// <param name="loginDTO">An object containing the user's login credentials.</param>
+        /// <returns>An IActionResult containing the access token and refresh token on successful authentication.</returns>
+        /// <response code="200">User logged in successfully.</response>
+        /// <response code="400">Entered data is not valid.</response>
+        /// <response code="404">User was not found.</response>
         [HttpPost("Login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login(AuthLoginDTO loginDTO)
@@ -92,7 +107,7 @@ namespace CatStoreAPI.Controllers
                     response.Result = new { tokens };
                     return Ok(response);
                 }
-                
+
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.NotFound;
                 response.Errors.Add("User not found");
@@ -108,6 +123,13 @@ namespace CatStoreAPI.Controllers
             return BadRequest(response);
         }
 
+        /// <summary>
+        /// Deletes the authenticated user's account.
+        /// </summary>
+        /// <param name="userDetails">An object containing the user's email and password.</param>
+        /// <returns>An IActionResult indicating the result of the delete operation.</returns>
+        /// <response code="200">Successfully deleted.</response>
+        /// <response code="401">User is not authenticated.</response>
         [HttpDelete]
         [Authorize]
         public async Task<IActionResult> DeleteAccount(AuthLoginDTO userDetails)
@@ -126,10 +148,14 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.Unauthorized;
                 response.Errors.Add("User is not authenticated");
-                return NotFound(response);
+                return Unauthorized(response);
             }
         }
 
+        /// <summary>
+        /// Initiates the Google OAuth authentication flow.
+        /// </summary>
+        /// <returns>A ChallengeResult that redirects the user to Google for authentication.</returns>
         [HttpGet("signin-google")]
         [AllowAnonymous]
         public IActionResult LoginGoogle()
@@ -138,6 +164,12 @@ namespace CatStoreAPI.Controllers
             return Challenge(properties, GoogleDefaults.AuthenticationScheme);
         }
 
+        /// <summary>
+        /// Handles the response from Google after user authentication.
+        /// </summary>
+        /// <returns>An IActionResult containing the generated tokens on successful authentication.</returns>
+        /// <response code="200">User authenticated successfully and tokens issued.</response>
+        /// <response code="400">Authentication failed or email claim not received from Google.</response>
         [HttpGet("GoogleResponse")]
         [AllowAnonymous]
         public async Task<IActionResult> GoogleResponse()
@@ -202,7 +234,7 @@ namespace CatStoreAPI.Controllers
 
                 if (string.IsNullOrEmpty(firstName)) user.FirstName = "First";
                 if (string.IsNullOrEmpty(lastName)) user.LastName = "Last";
-                
+
                 var res = await userManager.CreateAsync(user);
 
                 if (!res.Succeeded)
@@ -217,15 +249,23 @@ namespace CatStoreAPI.Controllers
 
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;
-            response.Result = new {token};
+            response.Result = new { token };
             return Ok(response);
         }
 
+        /// <summary>
+        /// Initiates the password reset process for the user by sending a reset link to the provided email (DOES NOT REALLY SEND THE EMAIL DUE TO THE LACK OF A SENDER EMAIL).
+        /// </summary>
+        /// <param name="forgotPasswordDTO">An object containing the email of the user who wants to reset the password.</param>
+        /// <returns>An IActionResult indicating the result of sending the password reset email.</returns>
+        /// <response code="200">Password reset email sent successfully.</response>
+        /// <response code="400">Bad request due to validation errors or email sending failure.</response>
+        /// <response code="404">User is not found.</response>
         [HttpPost("ForgotPassword")]
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordDTO forgotPasswordDTO)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
@@ -238,11 +278,11 @@ namespace CatStoreAPI.Controllers
 
             var user = await userManager.FindByEmailAsync(forgotPasswordDTO.Email);
 
-            if(user is null)
+            if (user is null)
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.Unauthorized;
-                response.Errors.Add("User is not authenticated");
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User is not found");
                 return NotFound(response);
             }
 
@@ -252,7 +292,13 @@ namespace CatStoreAPI.Controllers
 
             try
             {
-                await emailService.SendEmailAsync(forgotPasswordDTO.Email, "Password reset", $"Reset your password using this link: {resetUrl}");
+                EmailMetadata emailMetadata = new(
+                    forgotPasswordDTO.Email,
+                    "Reset password",
+                    $"Reset your password using this link: {resetUrl}"
+                );
+
+                emailService.SendEmailAsync(emailMetadata);
 
                 response.IsSuccess = true;
                 response.StatusCode = HttpStatusCode.OK;
@@ -267,6 +313,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Resets the user's password using the provided reset token.
+        /// </summary>
+        /// <param name="resetPasswordDTO">An object containing the email, reset token, and new password.</param>
+        /// <returns>An IActionResult indicating the result of the password reset operation.</returns>
+        /// <response code="200">Password reset successfully.</response>
+        /// <response code="400">Bad request due to validation errors or invalid token.</response>
+        /// <response code="404">User is not found.</response>
         [HttpPost("ResetPassword")]
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword(ResetPasswordDTO resetPasswordDTO)
@@ -286,8 +340,8 @@ namespace CatStoreAPI.Controllers
             if (user is null)
             {
                 response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.Unauthorized;
-                response.Errors.Add("User is not authenticated");
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User is not found");
                 return NotFound(response);
             }
 
@@ -308,10 +362,18 @@ namespace CatStoreAPI.Controllers
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = new List<string>();
-            foreach(var err in result.Errors) response.Errors.Add(err.Description);
+            foreach (var err in result.Errors) response.Errors.Add(err.Description);
             return BadRequest(response);
         }
 
+        /// <summary>
+        /// Changes the password of the authenticated user.
+        /// </summary>
+        /// <param name="changePasswordDTO">An object containing the current password and new password.</param>
+        /// <returns>An IActionResult indicating the result of the password change operation.</returns>
+        /// <response code="200">Password changed successfully.</response>
+        /// <response code="400">Bad request due to validation errors or incorrect current password.</response>
+        /// <response code="401">User is not authenticated.</response>
         [HttpPost("ChangePassword")]
         [Authorize]
         public async Task<IActionResult> ChangePassword(ChangePasswordDTO changePasswordDTO)
@@ -334,7 +396,7 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.Unauthorized;
                 response.Errors.Add("User is not authenticated");
-                return NotFound(response);
+                return Unauthorized(response);
             }
 
             var res = await userManager.ChangePasswordAsync(user, changePasswordDTO.CurrentPassword, changePasswordDTO.NewPassword);
@@ -347,7 +409,7 @@ namespace CatStoreAPI.Controllers
                 foreach (var err in res.Errors) response.Errors.Add(err.Description);
                 return BadRequest(response);
             }
-           
+
             user.TokenVersion++;
             await userManager.UpdateAsync(user);
 
@@ -356,6 +418,12 @@ namespace CatStoreAPI.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Logs out the user from all devices by invalidating all active tokens.
+        /// </summary>
+        /// <returns>An IActionResult indicating the result of the logout operation.</returns>
+        /// <response code="200">User logged out from all devices successfully.</response>
+        /// <response code="401">User is not authenticated.</response>
         [HttpPost("LogOutAll")]
         [Authorize]
         public async Task<IActionResult> LogOutAll()
@@ -367,7 +435,7 @@ namespace CatStoreAPI.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.Unauthorized;
                 response.Errors.Add("User is not authenticated");
-                return NotFound(response);
+                return Unauthorized(response);
             }
 
             user.TokenVersion++; // invalidate tokenVersion
@@ -380,15 +448,21 @@ namespace CatStoreAPI.Controllers
                 response.StatusCode = HttpStatusCode.OK;
                 return Ok(response);
             }
-            
+
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = new List<string>();
             foreach (var err in res.Errors) response.Errors.Add($"{err}");
             return BadRequest(response);
-            
+
         }
 
+        /// <summary>
+        /// Logs out the user from the current device by invalidating the current token.
+        /// </summary>
+        /// <returns>An IActionResult indicating the result of the logout operation.</returns>
+        /// <response code="200">User logged out from the current device successfully.</response>
+        /// <response code="401">User is not authenticated or token is invalid.</response>
         [HttpPost("LogOutSingle")]
         [Authorize]
         public async Task<IActionResult> LogOutSingle()
@@ -441,6 +515,14 @@ namespace CatStoreAPI.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Generates a new access token and refresh token using the provided refresh token.
+        /// </summary>
+        /// <param name="refreshTokenDTO">An object containing the current access token and refresh token.</param>
+        /// <returns>An IActionResult containing the new tokens.</returns>
+        /// <response code="200">Tokens refreshed successfully.</response>
+        /// <response code="400">Invalid request due to missing data.</response>
+        /// <response code="401">Invalid refresh token.</response>
         [HttpPost("RefreshToken")]
         public async Task<IActionResult> RefreshToken(RefreshTokenDTO refreshTokenDTO)
         {
@@ -476,6 +558,15 @@ namespace CatStoreAPI.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Updates the authenticated user's profile information.
+        /// </summary>
+        /// <param name="editInfoDTO">An object containing the updated user information.</param>
+        /// <returns>An IActionResult indicating the result of the update operation.</returns>
+        /// <response code="200">User information updated successfully.</response>
+        /// <response code="400">Bad request due to validation errors.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="404">User not found.</response>
         [HttpPost("EditInfo")]
         [Authorize]
         public async Task<IActionResult> UpdateUserInfo(EditInfoDTO editInfoDTO)
@@ -494,7 +585,7 @@ namespace CatStoreAPI.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId is null)
             {
-                response.IsSuccess= false;
+                response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.Unauthorized;
                 response.Errors.Add("User is not Authenticated.");
                 return Unauthorized(response);
@@ -518,7 +609,7 @@ namespace CatStoreAPI.Controllers
                 response.StatusCode = HttpStatusCode.OK;
                 return Ok(response);
             }
-            
+
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             foreach (var error in result.Errors) response.Errors.Add(error.Description);

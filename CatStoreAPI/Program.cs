@@ -12,7 +12,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 
@@ -38,6 +40,7 @@ namespace CatStoreAPI
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseLazyLoadingProxies().UseSqlServer(connectionString));
 
+            // Register repositories and services
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -50,19 +53,19 @@ namespace CatStoreAPI
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddTransient<IEmailService, EmailService>();
 
             builder.Services.AddIdentity<AppUser, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
-            builder.Services.AddScoped<IEmailService, EmailService>();
 
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling =
-                Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+                    Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 
             builder.Services.AddAutoMapper(typeof(MappingConfig));
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            // Configure Swagger/OpenAPI
             builder.Services.AddEndpointsApiExplorer();
 
             builder.Services.AddSwaggerGen(c =>
@@ -76,7 +79,7 @@ namespace CatStoreAPI
                     Scheme = "Bearer",
                     BearerFormat = "JWT",
                     In = ParameterLocation.Header,
-                    Description = "Enter your JWT token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
+                    Description = "Enter your JWT token in the text input below.\r\n\r\nExample: \"Bearer eyJhb...\""
                 });
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -93,88 +96,109 @@ namespace CatStoreAPI
                         new string[] {}
                     }
                 });
+
+                c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
             });
 
-            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // Clear default mappings
+            // Clear default claims mapping
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-            builder.Services.AddAuthorization();
-            builder.Services.AddAuthentication
-            (
-                options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-                }
-            ).AddCookie()
-            .AddGoogle(options =>
+            // Configure Authentication
+            builder.Services.AddAuthentication(options =>
             {
-                options.ClientId = Environment.GetEnvironmentVariable("ClientId");
-                options.ClientSecret = Environment.GetEnvironmentVariable("ClientSecret");
+                // Set default schemes for authentication and challenge
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            // Add JWT Bearer authentication
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters()
+                {
+                    ValidateAudience = true,
+                    ValidateIssuer = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+                        Environment.GetEnvironmentVariable("Key")
+                        ?? throw new InvalidOperationException("JWT signing key not found in environment variables."))),
+                    NameClaimType = JwtRegisteredClaimNames.Sub,
+                    RoleClaimType = ClaimTypes.Role
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        // Token validation logic
+                        var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
+                        var userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                        var tokenVersionClaim = context.Principal.FindFirst("TokenVersion")?.Value;
+
+                        if (!int.TryParse(tokenVersionClaim, out var tokenVersion))
+                        {
+                            context.Fail("Invalid token version.");
+                            return;
+                        }
+
+                        var user = await userManager.FindByIdAsync(userId);
+                        if (user == null || user.TokenVersion != tokenVersion)
+                        {
+                            context.Fail("Token is no longer valid.");
+                            return;
+                        }
+
+                        // Check if the token has been revoked (single logout)
+                        var tokenService = context.HttpContext.RequestServices.GetRequiredService<ITokenService>();
+                        var jti = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
+
+                        if (string.IsNullOrEmpty(jti))
+                        {
+                            context.Fail("Invalid token.");
+                            return;
+                        }
+
+                        var isRevoked = await tokenService.IsTokenRevokedAsync(jti);
+                        if (isRevoked)
+                        {
+                            context.Fail("Token has been revoked.");
+                            return;
+                        }
+                    }
+                };
+            })
+            // Add Cookie authentication for external login (Google)
+            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+            {
+                options.LoginPath = "/api/Account/LoginGoogle"; // Set the login path for initiating Google login
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    // Return 401 instead of redirecting to the login page
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    // Return 403 instead of redirecting
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                };
+            })
+            .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+            {
+                options.ClientId = Environment.GetEnvironmentVariable("ClientId")
+                    ?? throw new InvalidOperationException("Google ClientId not found in environment variables.");
+                options.ClientSecret = Environment.GetEnvironmentVariable("ClientSecret")
+                    ?? throw new InvalidOperationException("Google ClientSecret not found in environment variables.");
 
                 options.Scope.Add("profile");
                 options.SaveTokens = true;
-                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            }
-            ).AddJwtBearer
-            (
-                options => 
-                {
-                    options.SaveToken = true;
-                    options.TokenValidationParameters = new TokenValidationParameters()
-                    {
-                        ValidateAudience = true,
-                        ValidateIssuer = true,
-                        ValidateLifetime = true,
-                        ValidIssuer = jwtSettings["Issuer"],
-                        ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("Key"))),
-                        NameClaimType = JwtRegisteredClaimNames.Sub,
-                        RoleClaimType = ClaimTypes.Role
-                    };
+                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme; // Use cookies for sign-in
+            });
 
-                    options.Events = new JwtBearerEvents
-                    {
-                        OnTokenValidated = async context =>
-                        {
-                            // all devices log out
-                            var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
-                            var userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
-                            var tokenVersionClaim = context.Principal.FindFirst("TokenVersion")?.Value;
-
-                            if (!int.TryParse(tokenVersionClaim, out var tokenVersion))
-                            {
-                                context.Fail("Invalid token version.");
-                                return;
-                            }
-
-                            var user = await userManager.FindByIdAsync(userId);
-                            if (user == null || user.TokenVersion != tokenVersion)
-                            {
-                                context.Fail("Token is no longer valid.");
-                            }
-
-                            // single log out
-                            var tokenService = context.HttpContext.RequestServices.GetRequiredService<ITokenService>();
-                            var jti = context.Principal.FindFirstValue(JwtRegisteredClaimNames.Jti);
-
-                            if (string.IsNullOrEmpty(jti))
-                            {
-                                context.Fail("Invalid token.");
-                                return;
-                            }
-
-                            var isRevoked = await tokenService.IsTokenRevokedAsync(jti);
-                            if (isRevoked)
-                            {
-                                context.Fail("Token has been revoked.");
-                                return;
-                            }
-                        }
-                    };
-                }
-            );
+            builder.Services.AddAuthorization();
 
             builder.Services.AddOutputCache();
 
@@ -183,34 +207,52 @@ namespace CatStoreAPI
                 options.TokenLifespan = TimeSpan.FromHours(3);  // Token is valid for 3 hours
             });
 
+            // Configure CORS to allow specific origin and credentials
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowAllPolicy", builder =>
+                options.AddPolicy("AllowSpecificOrigin", builder =>
                 {
-                    builder.AllowAnyOrigin()
+                    builder.WithOrigins("https://localhost:5001") // Replace with your frontend URL and port
                            .AllowAnyHeader()
-                           .AllowAnyMethod();
+                           .AllowAnyMethod()
+                           .AllowCredentials(); // Allow cookies
                 });
             });
 
-            // Configure the HTTP request pipeline.
+            // Build the app
             var app = builder.Build();
+
+            // Seed roles
             using (var scope = app.Services.CreateScope())
             {
                 await SeedRolesAsync(scope.ServiceProvider);
-            };
+            }
+
+            // Configure the HTTP request pipeline.
 
             if (app.Environment.IsDevelopment())
             {
+                app.UseDeveloperExceptionPage();
+
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerUI(c =>
+                {
+                    c.DefaultModelExpandDepth(2);
+                    c.DocExpansion(DocExpansion.None);
+                    c.DisplayRequestDuration();
+                });
+            }
+            else
+            {
+                app.UseExceptionHandler("/error");
+                app.UseHsts();
             }
 
             app.UseHttpsRedirection();
 
-            app.UseCors("SpecificOriginsPolicy"); // Use the policy you defined
-
             app.UseRouting();
+
+            app.UseCors("AllowSpecificOrigin"); // Apply the CORS policy
 
             app.UseAuthentication();
             app.UseAuthorization();

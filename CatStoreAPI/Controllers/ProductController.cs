@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using CatStoreAPI.Core.Models;
 using CatStoreAPI.DTO.ProductDTOs;
 using Core.Interfaces;
 using Core.Models;
@@ -27,6 +26,19 @@ namespace CatStoreAPI.Controllers
             this.response = new APIResponse();
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of products with optional filters and sorting.
+        /// </summary>
+        /// <param name="searchName">Filter by product name.</param>
+        /// <param name="searchCategory">Filter by category name.</param>
+        /// <param name="searchBrand">Filter by brand name.</param>
+        /// <param name="sortBy">Field to sort by (e.g., "Price", "Name").</param>
+        /// <param name="isSortAscending">Sort order: true for ascending, false for descending.</param>
+        /// <param name="page">Page number for pagination.</param>
+        /// <param name="pageSize">Number of items per page.</param>
+        /// <returns>An ActionResult containing an APIResponse with the list of products.</returns>
+        /// <response code="200">Products retrieved successfully.</response>
+        /// <response code="400">Bad request due to invalid parameters.</response>
         [HttpGet]
         [OutputCache(Duration = 60, Tags = ["Products"])]
         public async Task<ActionResult<APIResponse>> GetAllProducts(
@@ -59,6 +71,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves a product by its unique identifier.
+        /// </summary>
+        /// <param name="Id">The unique identifier of the product.</param>
+        /// <returns>An ActionResult containing an APIResponse with the product details.</returns>
+        /// <response code="200">Product retrieved successfully.</response>
+        /// <response code="400">Bad request due to invalid product ID.</response>
+        /// <response code="404">Product not found.</response>
         [HttpGet("{Id}")]
         [OutputCache(Duration = 120, VaryByRouteValueNames = ["Id"], Tags = ["Product"])]
         public async Task<ActionResult<APIResponse>> GetProductById(int Id)
@@ -66,6 +86,14 @@ namespace CatStoreAPI.Controllers
             try
             {
                 var product = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
+
+                if (product is null)
+                {
+                    response.StatusCode = HttpStatusCode.NotFound;
+                    response.IsSuccess = false;
+                    response.Errors.Add("Product not found.");
+                    return NotFound(response);
+                }
 
                 response.Result = product;
                 response.StatusCode = HttpStatusCode.OK;
@@ -81,6 +109,14 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Creates a new product.
+        /// </summary>
+        /// <param name="productDTO">An object containing the details of the product to create.</param>
+        /// <returns>An ActionResult containing an APIResponse with the created product.</returns>
+        /// <response code="200">Product created successfully.</response>
+        /// <response code="400">Bad request due to validation errors.</response>
+        /// <remarks>Requires administrator privileges.</remarks>
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> CreateProduct(ProductCreateDTO productDTO)
@@ -114,6 +150,16 @@ namespace CatStoreAPI.Controllers
             return BadRequest(response);
         }
 
+        /// <summary>
+        /// Updates an existing product.
+        /// </summary>
+        /// <param name="Id">The unique identifier of the product to update.</param>
+        /// <param name="productDTO">An object containing the updated product details.</param>
+        /// <returns>An ActionResult containing an APIResponse with the updated product.</returns>
+        /// <response code="200">Product updated successfully.</response>
+        /// <response code="400">Bad request due to validation errors or invalid product code.</response>
+        /// <response code="404">Product not found.</response>
+        /// <remarks>Requires administrator privileges.</remarks>
         [HttpPut("{Id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> EditProduct(int Id, ProductUpdateDTO productDTO)
@@ -127,14 +173,24 @@ namespace CatStoreAPI.Controllers
             {
                 try
                 {
-                    mapper.Map(productDTO, existProduct);
-                    unitOfWork.Products.UpdateProduct(existProduct);
+                    var productToUpdate = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
+
+                    if (productToUpdate == null)
+                    {
+                        response.StatusCode = HttpStatusCode.NotFound;
+                        response.IsSuccess = false;
+                        response.Errors.Add("Product not found.");
+                        return NotFound(response);
+                    }
+
+                    mapper.Map(productDTO, productToUpdate);
+                    unitOfWork.Products.UpdateProduct(productToUpdate);
                     await unitOfWork.SaveChangesAsync();
 
                     await outputCacheStore.EvictByTagAsync("Products", HttpContext.RequestAborted);
                     await outputCacheStore.EvictByTagAsync($"Product-{Id}", HttpContext.RequestAborted);
 
-                    response.Result = existProduct;
+                    response.Result = productToUpdate;
                     response.StatusCode = HttpStatusCode.OK;
                     response.IsSuccess = true;
                     return Ok(response);
@@ -143,7 +199,7 @@ namespace CatStoreAPI.Controllers
                 {
                     response.StatusCode = HttpStatusCode.BadRequest;
                     response.IsSuccess = false;
-                    response.Errors.Add("Category not found!");
+                    response.Errors.Add("An error occurred while updating the product.");
                     return BadRequest(response);
                 }
             }
@@ -157,6 +213,15 @@ namespace CatStoreAPI.Controllers
             return BadRequest(response);
         }
 
+        /// <summary>
+        /// Deletes an existing product.
+        /// </summary>
+        /// <param name="Id">The unique identifier of the product to delete.</param>
+        /// <returns>An ActionResult containing an APIResponse with details of the deleted product.</returns>
+        /// <response code="200">Product deleted successfully.</response>
+        /// <response code="400">Bad request due to invalid product ID.</response>
+        /// <response code="404">Product not found.</response>
+        /// <remarks>Requires administrator privileges.</remarks>
         [HttpDelete("{Id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> RemoveProduct(int Id)
@@ -164,6 +229,14 @@ namespace CatStoreAPI.Controllers
             try
             {
                 var removedProduct = await unitOfWork.Products.GetSingleAsync(x => x.Id == Id);
+
+                if (removedProduct == null)
+                {
+                    response.StatusCode = HttpStatusCode.NotFound;
+                    response.IsSuccess = false;
+                    response.Errors.Add("Product not found.");
+                    return NotFound(response);
+                }
 
                 await unitOfWork.Products.RemoveAsync(x => x.Id == Id);
                 await unitOfWork.SaveChangesAsync();
@@ -185,6 +258,15 @@ namespace CatStoreAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Applies a discount offer to a single product.
+        /// </summary>
+        /// <param name="Id">The unique identifier of the product.</param>
+        /// <param name="Discount">The discount percentage to apply.</param>
+        /// <returns>An ActionResult containing an APIResponse with the updated product.</returns>
+        /// <response code="200">Discount applied successfully.</response>
+        /// <response code="400">Bad request due to invalid parameters.</response>
+        /// <remarks>Requires administrator privileges.</remarks>
         [HttpPost("ProductOfferSingle/{Id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnSingleProduct(int Id, int Discount)
@@ -201,6 +283,15 @@ namespace CatStoreAPI.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Applies a discount offer to multiple products.
+        /// </summary>
+        /// <param name="Ids">A list of product IDs to which the discount will be applied.</param>
+        /// <param name="Discount">The discount percentage to apply.</param>
+        /// <returns>An ActionResult containing an APIResponse with the updated products.</returns>
+        /// <response code="200">Discount applied successfully to multiple products.</response>
+        /// <response code="400">Bad request due to invalid parameters.</response>
+        /// <remarks>Requires administrator privileges.</remarks>
         [HttpPost("ProductOfferMultiple")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnMultipleProducts(List<int> Ids, int Discount)
@@ -220,6 +311,15 @@ namespace CatStoreAPI.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Applies a discount offer to all products of a specific brand.
+        /// </summary>
+        /// <param name="BrandName">The name of the brand.</param>
+        /// <param name="Discount">The discount percentage to apply.</param>
+        /// <returns>An ActionResult containing an APIResponse with the updated products.</returns>
+        /// <response code="200">Discount applied successfully to brand products.</response>
+        /// <response code="400">Bad request due to missing or invalid brand name.</response>
+        /// <remarks>Requires administrator privileges.</remarks>
         [HttpPost("ProductOfferBrand")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnBrandProducts(string BrandName, int Discount)
@@ -247,6 +347,15 @@ namespace CatStoreAPI.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Applies a discount offer to all products of a specific category.
+        /// </summary>
+        /// <param name="CategoryName">The name of the category.</param>
+        /// <param name="Discount">The discount percentage to apply.</param>
+        /// <returns>An ActionResult containing an APIResponse with the updated products.</returns>
+        /// <response code="200">Discount applied successfully to category products.</response>
+        /// <response code="400">Bad request due to missing or invalid category name.</response>
+        /// <remarks>Requires administrator privileges.</remarks>
         [HttpPost("ProductOfferCategory")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> SetOfferOnCategoriesProducts(string CategoryName, int Discount)

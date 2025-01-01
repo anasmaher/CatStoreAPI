@@ -1,4 +1,5 @@
 ﻿using Castle.Core.Smtp;
+using Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,6 @@ namespace Core.Interfaces
 {
     public interface IEmailService
     {
-        Task SendEmailAsync(string toEmail, string subject, string message);
+        void SendEmailAsync(EmailMetadata emailMetadata);
     }
 }

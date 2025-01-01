@@ -2,7 +2,6 @@
 using CatStoreAPI.DTO.OrderDTOs;
 using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -27,6 +26,14 @@ namespace CatStoreAPI.Controllers
             this.mapper = mapper;
         }
 
+        /// <summary>
+        /// Creates a new order for the authenticated user based on the items in their shopping cart.
+        /// </summary>
+        /// <param name="createOrderDTO">An object containing the shipping address and other order details.</param>
+        /// <returns>An ActionResult containing an APIResponse with the created order information.</returns>
+        /// <response code="200">Order created successfully.</response>
+        /// <response code="400">Bad request due to validation errors or empty shopping cart.</response>
+        /// <response code="401">User is not authenticated.</response>
         [HttpPost]
         [Authorize]
         public async Task<ActionResult<APIResponse>> CreateOrder(OrderCreateDTO createOrderDTO)
@@ -78,11 +85,12 @@ namespace CatStoreAPI.Controllers
 
             var productIds = order.OrderItems.Select(x => x.ProductId).ToList();
             List<Product> products = new List<Product>();
-            foreach (var prodId  in productIds)
+            foreach (var prodId in productIds)
             {
                 var product = await unitOfWork.Products.GetSingleAsync(x => x.Id == prodId);
                 products.Add(product);
             }
+
             foreach (var orderItem in order.OrderItems)
             {
                 var product = products.FirstOrDefault(p => p.Id == orderItem.ProductId);
@@ -103,11 +111,17 @@ namespace CatStoreAPI.Controllers
             await unitOfWork.SaveChangesAsync();
 
             response.IsSuccess = true;
-            response.StatusCode = HttpStatusCode.OK;
+            response.StatusCode = HttpStatusCode.Created;
             response.Result = order;
             return Ok(response);
         }
 
+        /// <summary>
+        /// Retrieves all orders placed by the authenticated user.
+        /// </summary>
+        /// <returns>An ActionResult containing an APIResponse with the list of orders.</returns>
+        /// <response code="200">Orders retrieved successfully.</response>
+        /// <response code="401">User is not authenticated.</response>
         [HttpGet]
         [Authorize]
         public async Task<ActionResult<APIResponse>> GetOrdersForUser()
