@@ -30,7 +30,7 @@ namespace CatStoreAPI
             var jwtSettings = builder.Configuration.GetSection("JWT");
 
             // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            var connectionString = Environment.GetEnvironmentVariable("DefaultConnection");
 
             if (string.IsNullOrEmpty(connectionString))
             {
