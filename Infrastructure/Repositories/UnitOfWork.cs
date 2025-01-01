@@ -34,7 +34,8 @@ namespace Infrastructure.Repositories
             if (existingCategory is null)
             {
                 var category = new Category { Name = categoryName };
-                category.DisplayOrder = dbContext.Categories.Max(x => x.DisplayOrder);
+                if(dbContext.Categories.Count() > 0)
+                    category.DisplayOrder = dbContext.Categories.Max(x => x.DisplayOrder) + 1;
 
                 await Categories.AddAsync(category);
 
