@@ -30,7 +30,7 @@ namespace CatStoreAPI
             var jwtSettings = builder.Configuration.GetSection("JWT");
 
             // Add services to the container.
-            var connectionString = Environment.GetEnvironmentVariable("DefaultConnection");
+            var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
 
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -237,8 +237,6 @@ namespace CatStoreAPI
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
-                    c.DefaultModelExpandDepth(2);
-                    c.DocExpansion(DocExpansion.None);
                     c.DisplayRequestDuration();
                 });
             }
