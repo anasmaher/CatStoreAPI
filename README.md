@@ -84,3 +84,8 @@ CatStoreAPI/
 * Category reordering service
 * Repository pattern implementation
 * AutoMapper for DTO mappings
+
+## Contact
+* Name: Anas Al-horigy
+* Email: anas.elhorigy@gmail.com
+* LinkedIn: https://www.linkedin.com/in/anas-alhorigy/
