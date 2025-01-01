@@ -7,7 +7,7 @@ namespace CatStoreAPI.DTO.CategoryDTOs
         [Required, MaxLength(100)]
         public string Name { get; set; }
 
-        [MaxLength(500)]
-        public string? ImageUrl { get; set; }
+        [Required, MaxLength(500)]
+        public string ImageUrl { get; set; }
     }
 }
