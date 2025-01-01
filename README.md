@@ -1,6 +1,6 @@
 # CatStoreAPI
 
-#🌟 Features
+## 🌟 Features
 * User Authentication & Authorization
 * Product Management
 * Shopping Cart Functionality
