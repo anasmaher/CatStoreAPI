@@ -26,7 +26,7 @@ CatStoreAPI/
 ```
 
 ## Key features
-* 🔐 Authentication & Authorization
+- 🔐 Authentication & Authorization
 * User registration and login
 * JWT token authentication
 * Refresh token mechanism
