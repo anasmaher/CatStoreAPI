@@ -1,5 +1,6 @@
 # CatStoreAPI
-http://catstore.runasp.net/swagger/index.html
+Swagger: http://catstore.runasp.net/swagger/index.html
+Postman: https://documenter.getpostman.com/view/38264798/2sAYJ7gK6v
 ## Project structure
 ```
 CatStoreAPI/
