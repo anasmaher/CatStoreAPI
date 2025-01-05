@@ -212,7 +212,7 @@ namespace CatStoreAPI
             {
                 options.AddPolicy("AllowSpecificOrigin", builder =>
                 {
-                    builder.WithOrigins("https://localhost:5001") // Replace with your frontend URL and port
+                    builder.WithOrigins("")
                            .AllowAnyHeader()
                            .AllowAnyMethod()
                            .AllowCredentials(); // Allow cookies
